@@ -246,7 +246,7 @@ function parseXLSX(file,onLoad){
         const cat=r.Category||r.cat||"vehicle";
         const type=r.Type||r.type||"wishlist";
         return{
-          id:r.ID||(Date.now()*1000+i),
+          id:r.ID||(crypto.randomUUID?(crypto.randomUUID()):(Date.now()*1e9+Math.floor(Math.random()*1e9)+i)),
           name:String(r.Name||r["Item Name"]||r.name||"Unnamed"),
           cat:CATS[cat]?cat:"vehicle",
           type:TYPES[type]?type:"wishlist",
@@ -869,10 +869,15 @@ function App(){
 
   const pendingCount=suggestions.filter(s=>!approvedIds.includes(s.id)&&!rejectedIds.includes(s.id)).length;
 
-  const showMsg=(m,color="#68D391")=>{setMsg({t:m,c:color});setTimeout(()=>setMsg(""),4500);};
+  const msgTimer=useRef(null);
+  const showMsg=(m,color="#68D391")=>{
+    if(msgTimer.current)clearTimeout(msgTimer.current);
+    setMsg({t:m,c:color});
+    msgTimer.current=setTimeout(()=>setMsg(""),4500);
+  };
 
   function openEdit(item){setEditItem({...item});}
-  const uid=()=>Date.now()*1000+Math.floor(Math.random()*1000);
+  const uid=()=>crypto.randomUUID?crypto.randomUUID():(Date.now()*1000+Math.floor(Math.random()*1e9));
   function openNew(){setEditItem({_new:true,id:uid(),name:"",cat:"vehicle",type:"wishlist",low:0,high:0,startMonth:1,recur:0,dur:1,notes:""});}
 
   function saveEdit(updated){
