@@ -30,19 +30,19 @@ const TYPES={
   experience: {label:"Experience",  color:"#F687B3",group:"o"},
 };
 const CATS={
-  vehicle: {label:"Vehicles",       icon:"\uD83D\uDE97",c:"#3182CE"},
-  exterior:{label:"Home Exterior",  icon:"\uD83C\uDFE1",c:"#2F855A"},
-  interior:{label:"Home Interior",  icon:"\uD83D\uDECB\uFE0F",c:"#C05621"},
-  systems: {label:"Home Systems",   icon:"\u26A1",c:"#B7791F"},
-  garage:  {label:"Garage/Workshop",icon:"\uD83D\uDD27",c:"#6B46C1"},
-  tech:    {label:"Tech",           icon:"\uD83D\uDCBB",c:"#0987A0"},
-  outdoor: {label:"Outdoor & Rec",  icon:"\uD83C\uDF32",c:"#276749"},
-  travel:  {label:"Travel",         icon:"\u2708\uFE0F",c:"#97266D"},
-  trailer: {label:"Trailer",        icon:"\uD83D\uDE90",c:"#9C4221"},
-  wyoming: {label:"Wyoming Ranch",  icon:"\uD83C\uDFD4\uFE0F",c:"#744210"},
-  hobbies: {label:"Hobbies",        icon:"\uD83C\uDFAF",c:"#2C5282"},
-  property:{label:"Property",       icon:"\uD83C\uDFD8\uFE0F",c:"#22543D"},
-  safety:  {label:"Safety",         icon:"\uD83D\uDEE1\uFE0F",c:"#822727"},
+  vehicle: {label:"Vehicles",       icon:"🚗",c:"#3182CE"},
+  exterior:{label:"Home Exterior",  icon:"🏡",c:"#2F855A"},
+  interior:{label:"Home Interior",  icon:"🛋️",c:"#C05621"},
+  systems: {label:"Home Systems",   icon:"⚡",c:"#B7791F"},
+  garage:  {label:"Garage/Workshop",icon:"🔧",c:"#6B46C1"},
+  tech:    {label:"Tech",           icon:"💻",c:"#0987A0"},
+  outdoor: {label:"Outdoor & Rec",  icon:"🌲",c:"#276749"},
+  travel:  {label:"Travel",         icon:"✈️",c:"#97266D"},
+  trailer: {label:"Trailer",        icon:"🚐",c:"#9C4221"},
+  wyoming: {label:"Wyoming Ranch",  icon:"🏔️",c:"#744210"},
+  hobbies: {label:"Hobbies",        icon:"🎯",c:"#2C5282"},
+  property:{label:"Property",       icon:"🏘️",c:"#22543D"},
+  safety:  {label:"Safety",         icon:"🛡️",c:"#822727"},
 };
 const RECUR_OPTS=[
   {v:0,l:"One-time"},{v:1,l:"Monthly"},{v:3,l:"Quarterly"},{v:6,l:"Every 6mo"},
@@ -79,11 +79,11 @@ const SEED=[
   ["New Dryer","interior","replacement",500,1200,36,120,1,"Match brand to washer"],
   ["Ice Machine","interior","wishlist",500,3000,24,0,1,"Undercounter nugget ice (GE Opal)"],
   ["New Couch","interior","wishlist",1000,4000,18,0,1,"Old one moves to gameroom"],
-  ["TV \u2014 Main Area","interior","replacement",500,2500,24,96,1,"75-85\" QLED/OLED; ~8yr cycle"],
-  ["TV \u2014 Master Bedroom","interior","replacement",400,1500,24,96,1,"55-65\" recommended"],
-  ["TV \u2014 Gameroom / Projector","interior","replacement",400,2500,36,96,1,"Short-throw projector option"],
-  ["Mattress \u2014 Calvin","interior","replacement",500,2000,24,96,1,"Purple, Saatva, or Tempur-Pedic"],
-  ["Mattress \u2014 Amelia","interior","replacement",500,2000,24,96,1,"Consider adjustable bases"],
+  ["TV — Main Area","interior","replacement",500,2500,24,96,1,"75-85\" QLED/OLED; ~8yr cycle"],
+  ["TV — Master Bedroom","interior","replacement",400,1500,24,96,1,"55-65\" recommended"],
+  ["TV — Gameroom / Projector","interior","replacement",400,2500,36,96,1,"Short-throw projector option"],
+  ["Mattress — Calvin","interior","replacement",500,2000,24,96,1,"Purple, Saatva, or Tempur-Pedic"],
+  ["Mattress — Amelia","interior","replacement",500,2000,24,96,1,"Consider adjustable bases"],
   ["Kids Bedframes","interior","wishlist",200,800,12,0,1,"Loft/bunk saves floor space"],
   ["Bookshelves","interior","wishlist",200,1000,18,0,1,"Built-in vs freestanding"],
   ["New Desks","interior","wishlist",300,1500,24,0,1,"Standing desk worth considering"],
@@ -95,8 +95,8 @@ const SEED=[
   ["Consolidate AC Units","systems","upgrade",3000,12000,24,0,2,"Mini-split replaces window units"],
   ["Whole Home Air Filter","systems","upgrade",500,2500,18,0,1,"HEPA or MERV-13 system"],
   ["HVAC for Under Garage","systems","wishlist",1500,6000,36,0,1,"Mini-split with heat pump"],
-  ["Solar Farm \u2014 Panels","systems","wishlist",15000,40000,48,0,6,"30% federal tax credit applies"],
-  ["Solar Farm \u2014 Batteries","systems","wishlist",10000,30000,60,0,2,"Tesla Powerwall or Enphase"],
+  ["Solar Farm — Panels","systems","wishlist",15000,40000,48,0,6,"30% federal tax credit applies"],
+  ["Solar Farm — Batteries","systems","wishlist",10000,30000,60,0,2,"Tesla Powerwall or Enphase"],
   ["RO Filter Upgrade","systems","upgrade",200,800,12,0,1,"Under-sink or whole-home"],
   ["Water Storage System","systems","wishlist",500,3000,6,0,1,"250-500 gal poly tank + pump"],
   ["Seal Basement Walls","systems","preventive",400,2000,2,0,1,"Spray foam for bugs, mice, radon"],
@@ -104,7 +104,7 @@ const SEED=[
   ["Septic Tank Cleaning","systems","routine",300,600,3,48,1,"Every 3-5 years"],
   ["New Impact Screw Gun","garage","wishlist",150,350,3,0,1,"Milwaukee M18 or DeWalt 20V"],
   ["New Impact/Torque Driver","garage","wishlist",150,400,3,0,1,"High-torque for automotive work"],
-  ["Tools \u2014 General Budget","garage","wishlist",500,3000,6,60,1,"Ongoing Milwaukee/DeWalt ecosystem"],
+  ["Tools — General Budget","garage","wishlist",500,3000,6,60,1,"Ongoing Milwaukee/DeWalt ecosystem"],
   ["Tool Chest","garage","wishlist",400,3000,12,0,1,"Snap-on top; Craftsman/Husky value"],
   ["Mini CNC Mill","garage","wishlist",500,3500,36,0,1,"Shapeoko or Onefinity"],
   ["3D Printer Upgrade (AMS/CFS)","garage","upgrade",800,2500,18,0,1,"Bambu Lab X1C + AMS"],
@@ -114,10 +114,10 @@ const SEED=[
   ["Pressure Washer (Gas)","garage","wishlist",300,800,6,0,1,"Simpson or Dewalt"],
   ["Welder (MIG or TIG)","garage","wishlist",400,2000,24,0,1,"Lincoln or Miller"],
   ["Nintendo Switch 2","tech","wishlist",400,500,1,0,1,"Bundle with games"],
-  ["Calvin \u2014 New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
-  ["Amelia \u2014 New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
-  ["Calvin \u2014 Laptop","tech","wishlist",800,2000,12,0,1,"Gaming vs productivity"],
-  ["Amelia \u2014 Laptop","tech","wishlist",800,2000,18,0,1,""],
+  ["Calvin — New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
+  ["Amelia — New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
+  ["Calvin — Laptop","tech","wishlist",800,2000,12,0,1,"Gaming vs productivity"],
+  ["Amelia — Laptop","tech","wishlist",800,2000,18,0,1,""],
   ["Computer Hardware Refresh","tech","replacement",1000,5000,12,60,2,"~5yr cycle; homelab + gaming"],
   ["Ultrawide Monitor","tech","wishlist",400,1200,24,0,1,"34\" curved; LG or Samsung"],
   ["Steam Deck / Phone Controller","tech","wishlist",200,500,6,0,1,"Steam Deck OLED excellent"],
@@ -139,16 +139,16 @@ const SEED=[
   ["Camping Chairs","outdoor","wishlist",50,300,1,0,1,"HELINOX or GCI; get 4-6"],
   ["Wok / High-BTU Burner","outdoor","wishlist",150,600,3,0,1,"Bayou Classic; outdoor only"],
   ["Sauna / Steam Room","outdoor","wishlist",3000,20000,60,0,3,"Barrel sauna DIY ~$3-5k"],
-  ["Snowboarding Passes","outdoor","experience",500,2000,11,12,1,"Epic or Ikon \u2014 annual"],
+  ["Snowboarding Passes","outdoor","experience",500,2000,11,12,1,"Epic or Ikon — annual"],
   ["Farm Animals","outdoor","wishlist",500,5000,24,0,1,"Chickens cheapest to start"],
   ["Fire Pit / Fireplace","outdoor","wishlist",300,4000,12,0,2,"DIY vs gas table vs masonry"],
   ["Outdoor Projector + Screen","outdoor","wishlist",400,1200,18,0,1,"Great for backyard movie nights"],
   ["Trip to Holland","travel","experience",3000,9000,18,0,1,"Tulip season April; book early"],
   ["Trip to UK/Ireland/Europe","travel","experience",5000,16000,36,0,1,"2 weeks; Ireland great road trip"],
-  ["Mom & Dad \u2014 Hawaii","travel","experience",3000,9000,24,0,1,"Maui or Kauai; book flights early"],
-  ["RV Trip \u2014 Pacific NW","travel","experience",2000,7000,12,0,1,"Fuel + campgrounds + activities"],
+  ["Mom & Dad — Hawaii","travel","experience",3000,9000,24,0,1,"Maui or Kauai; book flights early"],
+  ["RV Trip — Pacific NW","travel","experience",2000,7000,12,0,1,"Fuel + campgrounds + activities"],
   ["East Coast Trip for Mom","travel","experience",1500,5000,30,0,1,"Flights + hotels + activities"],
-  ["Annual Travel ($2k Company)","travel","experience",0,2000,12,12,1,"Reimbursed \u2014 use it every year"],
+  ["Annual Travel ($2k Company)","travel","experience",0,2000,12,12,1,"Reimbursed — use it every year"],
   ["Sporting Events","travel","experience",200,2000,3,12,1,"NFL/MLB vary by team"],
   ["Concerts","travel","experience",100,500,6,12,1,"Presale access matters"],
   ["Luggage Set","travel","wishlist",200,900,6,0,1,"Away or Monos hardside 4-piece"],
@@ -156,13 +156,13 @@ const SEED=[
   ["Trailer Generator (Onan)","trailer","wishlist",1000,3500,12,0,1,"Onan 2800i; LP preferred"],
   ["Trailer Tires","trailer","routine",400,1200,1,72,1,"Every 5-7yr regardless of tread"],
   ["Trailer Vacuum","trailer","wishlist",50,200,3,0,1,"Cordless handheld works great"],
-  ["WY Ranch \u2014 Road Improvements","wyoming","routine",5000,20000,12,60,2,"Grading + gravel every ~5yr"],
-  ["WY Ranch \u2014 Parking / Flat Pad","wyoming","wishlist",5000,15000,24,0,2,"Gravel base + culverts"],
-  ["WY Ranch \u2014 Paved Pad","wyoming","wishlist",8000,25000,36,0,2,"Concrete for freeze-thaw"],
-  ["WY Ranch \u2014 Septic System","wyoming","wishlist",8000,25000,48,0,3,"Soil perc test first"],
-  ["WY Ranch \u2014 Well / Pump House","wyoming","wishlist",8000,20000,36,0,3,"Well depth is the big variable"],
-  ["WY Ranch \u2014 Workshop / Pole Barn","wyoming","wishlist",20000,80000,60,0,6,"Morton or Lester Buildings"],
-  ["WY Ranch \u2014 Solar Off-Grid","wyoming","wishlist",8000,25000,48,0,3,"Pairs with well pump + cabin"],
+  ["WY Ranch — Road Improvements","wyoming","routine",5000,20000,12,60,2,"Grading + gravel every ~5yr"],
+  ["WY Ranch — Parking / Flat Pad","wyoming","wishlist",5000,15000,24,0,2,"Gravel base + culverts"],
+  ["WY Ranch — Paved Pad","wyoming","wishlist",8000,25000,36,0,2,"Concrete for freeze-thaw"],
+  ["WY Ranch — Septic System","wyoming","wishlist",8000,25000,48,0,3,"Soil perc test first"],
+  ["WY Ranch — Well / Pump House","wyoming","wishlist",8000,20000,36,0,3,"Well depth is the big variable"],
+  ["WY Ranch — Workshop / Pole Barn","wyoming","wishlist",20000,80000,60,0,6,"Morton or Lester Buildings"],
+  ["WY Ranch — Solar Off-Grid","wyoming","wishlist",8000,25000,48,0,3,"Pairs with well pump + cabin"],
   ["Ham Radio","hobbies","wishlist",100,1200,12,0,1,"Technician license is free"],
   ["Move Kiln / Upgrade Electric","hobbies","wishlist",500,3000,6,0,1,"240V circuit upgrade if needed"],
   ["Move Pottery Stuff","hobbies","wishlist",200,600,6,0,1,"Studio relocation"],
@@ -289,14 +289,14 @@ function EditModal({item,onSave,onDelete,onClose}){
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <h3 style={{margin:0,color:"#e8c87a",fontSize:15,fontWeight:700}}>
-            {isNew?"+ Add New Item":"\u270F\uFE0F Edit Item"}
+            {isNew?"+ Add New Item":"✏️ Edit Item"}
           </h3>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#605040",cursor:"pointer",fontSize:20,lineHeight:1}}>\u2715</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#605040",cursor:"pointer",fontSize:20,lineHeight:1}}>✕</button>
         </div>
 
         <div style={{marginBottom:11}}>
           <label style={lS}>Item Name</label>
-          <input style={iS} value={f.name||""} onChange={e=>set("name",e.target.value)} placeholder="Item name\u2026"/>
+          <input style={iS} value={f.name||""} onChange={e=>set("name",e.target.value)} placeholder="Item name…"/>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:11}}>
@@ -309,10 +309,10 @@ function EditModal({item,onSave,onDelete,onClose}){
           <div>
             <label style={lS}>Type</label>
             <select style={iS} value={f.type||"wishlist"} onChange={e=>set("type",e.target.value)}>
-              <optgroup label="\u2500\u2500 Maintenance">
+              <optgroup label="── Maintenance">
                 {["repair","preventive","routine","replacement"].map(k=><option key={k} value={k}>{TYPES[k].label}</option>)}
               </optgroup>
-              <optgroup label="\u2500\u2500 Other">
+              <optgroup label="── Other">
                 {["wishlist","upgrade","experience"].map(k=><option key={k} value={k}>{TYPES[k].label}</option>)}
               </optgroup>
             </select>
@@ -360,16 +360,16 @@ function EditModal({item,onSave,onDelete,onClose}){
         <div style={{marginBottom:14}}>
           <label style={lS}>Notes / Tips</label>
           <textarea style={{...iS,height:66,resize:"vertical"}} value={f.notes||""}
-            onChange={e=>set("notes",e.target.value)} placeholder="Brands, tips, considerations\u2026"/>
+            onChange={e=>set("notes",e.target.value)} placeholder="Brands, tips, considerations…"/>
         </div>
 
         <div style={{background:"#1a1710",borderRadius:5,padding:"8px 11px",marginBottom:14,
           fontSize:11,color:"#908070",lineHeight:1.8}}>
           <span style={{color:TYPES[f.type||"wishlist"].color,fontWeight:700}}>{TYPES[f.type||"wishlist"].label}</span>
-          {" \u00B7 "}{fmt(f.low||0)}\u2013{fmt(f.high||0)}
-          {" \u00B7 "}<span style={{color:"#e8c87a"}}>{m2label(f.startMonth||1)}</span>
-          {f.recur>0?` \u00B7 \u21BA every ${f.recur}mo`:" \u00B7 one-time"}
-          {"  \u2192  "}<span style={{color:"#68D391"}}>{occsArr.length}\u00D7 over 20yr = {fmtN(total20)} total</span>
+          {" · "}{fmt(f.low||0)}–{fmt(f.high||0)}
+          {" · "}<span style={{color:"#e8c87a"}}>{m2label(f.startMonth||1)}</span>
+          {f.recur>0?` · ↺ every ${f.recur}mo`:" · one-time"}
+          {"  →  "}<span style={{color:"#68D391"}}>{occsArr.length}× over 20yr = {fmtN(total20)} total</span>
         </div>
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
@@ -445,7 +445,7 @@ function GanttTab({items,onEdit}){
             <div style={{width:LW,flexShrink:0,display:"flex",alignItems:"flex-end",
               padding:"0 0 6px 10px",borderRight:"1px solid #3a3020"}}>
               <span style={{fontSize:10,color:"#706050",fontWeight:700}}>
-                {filtered.length} items \u2014 click any row to edit
+                {filtered.length} items — click any row to edit
               </span>
             </div>
             <div style={{flex:1,position:"relative",backgroundImage:gridBg,overflow:"hidden"}}>
@@ -502,7 +502,7 @@ function GanttTab({items,onEdit}){
                   <span style={{width:6,height:6,borderRadius:1,background:col,flexShrink:0}}/>
                   <span style={{fontSize:10,color:"#c8b890",whiteSpace:"nowrap",
                     overflow:"hidden",textOverflow:"ellipsis",flex:1}} title={item.name}>{item.name}</span>
-                  {item.recur>0&&<span style={{fontSize:8,color:col,opacity:0.6,flexShrink:0}}>\u21BA</span>}
+                  {item.recur>0&&<span style={{fontSize:8,color:col,opacity:0.6,flexShrink:0}}>↺</span>}
                 </div>
                 <div style={{flex:1,position:"relative",backgroundImage:gridBg}}>
                   {itemOccs.map((m,j)=>{
@@ -524,7 +524,7 @@ function GanttTab({items,onEdit}){
         </div>
       </div>
       <div style={{fontSize:10,color:"#504030",marginTop:5,display:"flex",gap:12,flexWrap:"wrap"}}>
-        <span>Jan {SY} \u2192 Dec {SY+19} \u00B7 Faded bars = recurring instances</span>
+        <span>Jan {SY} → Dec {SY+19} · Faded bars = recurring instances</span>
         <span style={{color:"#e8c87a"}}>Year header stays visible while scrolling down</span>
         <span>Click any item to edit</span>
       </div>
@@ -566,8 +566,8 @@ function FundingTab({items}){
         ))}
       </div>
 
-      {[{h:"\u2500\u2500 Maintenance (Fund First) \u2500\u2500",ks:["repair","preventive","routine","replacement"]},
-        {h:"\u2500\u2500 Other Goals \u2500\u2500",ks:["wishlist","upgrade","experience"]}].map(({h,ks})=>(
+      {[{h:"── Maintenance (Fund First) ──",ks:["repair","preventive","routine","replacement"]},
+        {h:"── Other Goals ──",ks:["wishlist","upgrade","experience"]}].map(({h,ks})=>(
         <div key={h}>
           <div style={{fontSize:11,color:"#e8c87a",fontWeight:700,marginBottom:8,letterSpacing:0.4}}>{h}</div>
           {ks.map(t=>{
@@ -611,7 +611,7 @@ function FundingTab({items}){
                       {st.soon.slice(0,7).map(it=>(
                         <span key={it.id} style={{fontSize:10,padding:"2px 7px",borderRadius:8,
                           background:tv.color+"1e",color:tv.color,border:`1px solid ${tv.color}44`}}>
-                          {it.name} \u00B7 {m2label(it.startMonth)} \u00B7 {fmtN(midOf(it))}
+                          {it.name} · {m2label(it.startMonth)} · {fmtN(midOf(it))}
                         </span>
                       ))}
                       {st.soon.length>7&&<span style={{fontSize:10,color:"#605040"}}>+{st.soon.length-7} more</span>}
@@ -652,7 +652,7 @@ function ListTab({items,onEdit,onNew}){
   return(
     <div>
       <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:12,alignItems:"center"}}>
-        <input placeholder="\uD83D\uDD0D Search\u2026" value={q} onChange={e=>setQ(e.target.value)}
+        <input placeholder="🔍 Search…" value={q} onChange={e=>setQ(e.target.value)}
           style={{...selS,width:170,fontSize:12}}/>
         <select style={selS} value={ft} onChange={e=>setFt(e.target.value)}>
           <option value="all">All Types</option>
@@ -665,8 +665,8 @@ function ListTab({items,onEdit,onNew}){
         <select style={selS} value={sort} onChange={e=>setSort(e.target.value)}>
           <option value="start">Sort: Date</option>
           <option value="name">Sort: Name</option>
-          <option value="costH">Sort: Cost \u2193</option>
-          <option value="costL">Sort: Cost \u2191</option>
+          <option value="costH">Sort: Cost ↓</option>
+          <option value="costL">Sort: Cost ↑</option>
         </select>
         <span style={{fontSize:11,color:"#605040"}}>{shown.length} of {items.length}</span>
         <button onClick={onNew} style={{marginLeft:"auto",padding:"5px 13px",borderRadius:5,
@@ -701,13 +701,13 @@ function ListTab({items,onEdit,onNew}){
               onMouseLeave={e=>e.currentTarget.style.borderColor="#3a3020"}>
               <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:5}}>
                 <div style={{fontWeight:700,fontSize:12,color:"#e8e0cc",lineHeight:1.3}}>{item.name}</div>
-                <div style={{fontSize:11,color:"#e8c87a",fontFamily:"monospace",whiteSpace:"nowrap"}}>{fmt(item.low)}\u2013{fmt(item.high)}</div>
+                <div style={{fontSize:11,color:"#e8c87a",fontFamily:"monospace",whiteSpace:"nowrap"}}>{fmt(item.low)}–{fmt(item.high)}</div>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:item.notes?4:0}}>
                 <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:cv.c+"2a",color:cv.c}}>{cv.icon} {cv.label}</span>
                 <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:tv.color+"1e",color:tv.color,border:`1px solid ${tv.color}33`}}>{tv.label}</span>
                 <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:"#3a3020",color:"#908070"}}>
-                  {m2label(item.startMonth)}{item.recur?` \u21BA${item.recur}mo`:""}
+                  {m2label(item.startMonth)}{item.recur?` ↺${item.recur}mo`:""}
                 </span>
               </div>
               {item.notes&&<div style={{fontSize:10,color:"#565040",lineHeight:1.4,marginTop:2}}>{item.notes}</div>}
@@ -742,7 +742,7 @@ function SummaryTab({items}){
                 <div style={{color:"#706050",fontSize:11}}>{its.length} items</div>
               </div>
               <div style={{color:"#e8c87a",fontSize:16,fontWeight:700,fontFamily:"monospace",marginBottom:3}}>
-                ${low.toLocaleString()} \u2013 ${high.toLocaleString()}
+                ${low.toLocaleString()} – ${high.toLocaleString()}
               </div>
               <div style={{fontSize:10,color:"#605040"}}>20yr est: <span style={{color:"#68D391"}}>${t20.toLocaleString()}</span></div>
             </div>
@@ -772,14 +772,14 @@ function SummaryTab({items}){
       <div style={{background:"#2a2418",borderRadius:10,padding:"18px 22px",border:"2px solid #5a4a2a"}}>
         <div style={{fontSize:12,color:"#a09070",marginBottom:6}}>Total One-Time Estimated Range</div>
         <div style={{fontSize:28,fontWeight:700,color:"#e8c87a",fontFamily:"monospace",marginBottom:4}}>
-          ${totalLow.toLocaleString()} \u2013 ${totalHigh.toLocaleString()}
+          ${totalLow.toLocaleString()} – ${totalHigh.toLocaleString()}
         </div>
         <div style={{fontSize:12,color:"#a09070",marginBottom:4}}>20-Year Total (including recurring)</div>
         <div style={{fontSize:22,fontWeight:700,color:"#68D391",fontFamily:"monospace",marginBottom:8}}>
           ${total20.toLocaleString()}
         </div>
         <div style={{fontSize:11,color:"#605040"}}>
-          Across {items.length} items \u00B7 Estimates are ranges; actual costs vary by vendor, region, and scope.
+          Across {items.length} items · Estimates are ranges; actual costs vary by vendor, region, and scope.
         </div>
       </div>
     </div>
@@ -797,15 +797,15 @@ function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}
       <div style={{marginBottom:16,padding:"12px 16px",background:"#2a2418",borderRadius:8,border:"1px solid #4a3a1a"}}>
         <p style={{margin:0,color:"#a09070",fontSize:12}}>
           These items fit themes already in your list. Approve to add to your master list, or reject to dismiss.
-          {approved.length>0&&` \u00B7 \u2705 ${approved.length} approved`}
-          {rejected.length>0&&` \u00B7 \u274C ${rejected.length} rejected`}
-          {pending.length===0&&" \u00B7 All reviewed!"}
+          {approved.length>0&&` · ✅ ${approved.length} approved`}
+          {rejected.length>0&&` · ❌ ${rejected.length} rejected`}
+          {pending.length===0&&" · All reviewed!"}
         </p>
       </div>
 
       {pending.length===0&&(
         <div style={{textAlign:"center",color:"#706050",padding:50,fontSize:14}}>
-          All suggestions reviewed! \u2713{approved.length>0&&` ${approved.length} item(s) added to your list.`}
+          All suggestions reviewed! ✓{approved.length>0&&` ${approved.length} item(s) added to your list.`}
         </div>
       )}
 
@@ -819,7 +819,7 @@ function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}
               <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:8}}>
                 <div style={{fontWeight:700,fontSize:13,color:"#e8e0cc",lineHeight:1.3}}>{item.name}</div>
                 <div style={{fontSize:12,fontWeight:700,color:"#e8c87a",whiteSpace:"nowrap",fontFamily:"monospace"}}>
-                  {fmt(item.low)}\u2013{fmt(item.high)}
+                  {fmt(item.low)}–{fmt(item.high)}
                 </div>
               </div>
               <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
@@ -831,10 +831,10 @@ function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>onApprove(item)} style={{flex:1,padding:"7px 0",borderRadius:6,
                   border:"1px solid #4a7a3a",background:"#1a3a1a",color:"#7ae87a",
-                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>\u2713 Add to List</button>
+                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>✓ Add to List</button>
                 <button onClick={()=>onReject(item.id)} style={{flex:1,padding:"7px 0",borderRadius:6,
                   border:"1px solid #5a2a2a",background:"#2a1a1a",color:"#e87a7a",
-                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>\u2715 Not Interested</button>
+                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>✕ Not Interested</button>
               </div>
             </div>
           );
@@ -843,7 +843,7 @@ function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}
 
       {approved.length>0&&(
         <div style={{marginTop:24}}>
-          <div style={{fontSize:11,color:"#68D391",fontWeight:700,marginBottom:8}}>\u2705 Approved & Added to List</div>
+          <div style={{fontSize:11,color:"#68D391",fontWeight:700,marginBottom:8}}>✅ Approved & Added to List</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {approved.map(s=>(
               <span key={s.id} style={{fontSize:11,padding:"3px 10px",borderRadius:20,
@@ -884,10 +884,10 @@ function App(){
     if(updated._new!==undefined){
       const{_new,...item}=updated;
       setItems(p=>[...p,{...item,id:uid()}]);
-      showMsg("\u2713 Item added");
+      showMsg("✓ Item added");
     } else {
       setItems(p=>p.map(i=>i.id===updated.id?updated:i));
-      showMsg("\u2713 Changes saved");
+      showMsg("✓ Changes saved");
     }
     setEditItem(null);
   }
@@ -897,7 +897,7 @@ function App(){
     const newItem={...suggItem,id:uid()};
     setItems(p=>[...p,newItem]);
     setApprovedIds(p=>[...p,suggItem.id]);
-    showMsg(`\u2713 "${suggItem.name}" added to list`);
+    showMsg(`✓ "${suggItem.name}" added to list`);
   }
   function handleReject(id){
     setRejectedIds(p=>[...p,id]);
@@ -905,7 +905,7 @@ function App(){
 
   function handleFile(e){
     const file=e.target.files[0];if(!file)return;
-    parseXLSX(file,imported=>{setItems(imported);showMsg(`\u2713 Loaded ${imported.length} items from "${file.name}"`);});
+    parseXLSX(file,imported=>{setItems(imported);showMsg(`✓ Loaded ${imported.length} items from "${file.name}"`);});
     e.target.value="";
   }
 
@@ -913,11 +913,11 @@ function App(){
     background:bg,color:col,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700});
 
   const TABS=[
-    ["list","\uD83D\uDCCB List"],
-    ["suggestions",`\uD83D\uDCA1 Suggestions${pendingCount>0?` (${pendingCount})`:""}`,],
-    ["summary","\uD83D\uDCCA Summary"],
-    ["gantt","\uD83D\uDCC8 Gantt (20yr)"],
-    ["funding","\uD83D\uDCB0 Funding"],
+    ["list","📋 List"],
+    ["suggestions",`💡 Suggestions${pendingCount>0?` (${pendingCount})`:""}`,],
+    ["summary","📊 Summary"],
+    ["gantt","📈 Gantt (20yr)"],
+    ["funding","💰 Funding"],
   ];
 
   return(
@@ -927,13 +927,13 @@ function App(){
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10,marginBottom:12}}>
         <div>
-          <h1 style={{margin:0,fontSize:20,fontWeight:700,color:"#e8c87a",letterSpacing:0.5}}>\uD83D\uDCCB Wish List Planner</h1>
-          <p style={{margin:"2px 0 0",color:"#605040",fontSize:11}}>{items.length} items \u00B7 Jan {SY}\u2013Dec {SY+19}</p>
+          <h1 style={{margin:0,fontSize:20,fontWeight:700,color:"#e8c87a",letterSpacing:0.5}}>📋 Wish List Planner</h1>
+          <p style={{margin:"2px 0 0",color:"#605040",fontSize:11}}>{items.length} items · Jan {SY}–Dec {SY+19}</p>
         </div>
         <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
           {msg&&<span style={{fontSize:11,color:msg.c,fontStyle:"italic"}}>{msg.t}</span>}
-          <button onClick={()=>fileRef.current.click()} style={btnS("#68D391","#1a3018","#3a6030")}>\u2191 Import Excel</button>
-          <button onClick={()=>{exportXLSX(items);showMsg(`\u2193 Exported ${items.length} items`,"#63B3ED");}} style={btnS("#63B3ED","#101828","#203860")}>\u2193 Export Excel</button>
+          <button onClick={()=>fileRef.current.click()} style={btnS("#68D391","#1a3018","#3a6030")}>↑ Import Excel</button>
+          <button onClick={()=>{exportXLSX(items);showMsg(`↓ Exported ${items.length} items`,"#63B3ED");}} style={btnS("#63B3ED","#101828","#203860")}>↓ Export Excel</button>
           <button onClick={openNew} style={btnS("#e8c87a","#2a1e08","#6a500a")}>+ Add Item</button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{display:"none"}}/>
         </div>
@@ -947,7 +947,7 @@ function App(){
             border:`1px solid ${v.color}38`,color:v.color}}>
             <span style={{width:7,height:7,borderRadius:1,background:v.color,display:"inline-block"}}/>
             {v.label}
-            {v.group==="m"&&<span style={{fontSize:8,opacity:0.6}}>\u2605</span>}
+            {v.group==="m"&&<span style={{fontSize:8,opacity:0.6}}>★</span>}
           </span>
         ))}
       </div>
