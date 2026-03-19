@@ -3,10 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Master Wish List</title>
+    <title>Wish List Planner</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { background: #1a1710; }
@@ -15,471 +16,963 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useMemo } = React;
+      const { useState, useMemo, useRef } = React;
 
-const CATEGORIES = {
-  vehicle: { label: "Vehicles & Transport", icon: "🚗", color: "#e07b39" },
-  home_interior: { label: "Home Interior", icon: "🛋️", color: "#7b9e6b" },
-  home_exterior: { label: "Home Exterior", icon: "🏡", color: "#6b8ab5" },
-  home_systems: { label: "Home Systems", icon: "⚡", color: "#c4a035" },
-  garage: { label: "Garage & Workshop", icon: "🔧", color: "#8b6b9e" },
-  tech: { label: "Tech & Electronics", icon: "💻", color: "#4a9e8a" },
-  outdoor: { label: "Outdoor & Recreation", icon: "🌲", color: "#5a9e5a" },
-  travel: { label: "Travel & Experiences", icon: "✈️", color: "#9e5a7b" },
-  trailer: { label: "Trailer", icon: "🚐", color: "#9e7a4a" },
-  wyoming: { label: "Wyoming Ranch", icon: "🏔️", color: "#7a6b55" },
-  hobbies: { label: "Hobbies & Personal", icon: "🎯", color: "#6b7a9e" },
-  safety: { label: "Safety & Emergency", icon: "🛡️", color: "#9e4a4a" },
-  property: { label: "Property", icon: "🏘️", color: "#4a7a9e" },
+const SY=2026,TM=240,ROW_H=22,CAT_H=28,AX_H=42,LW=228;
+const MNS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const TYPES={
+  repair:     {label:"Repair",      color:"#FC8181",group:"m"},
+  preventive: {label:"Preventive",  color:"#F6AD55",group:"m"},
+  routine:    {label:"Routine",     color:"#ECC94B",group:"m"},
+  replacement:{label:"Replacement", color:"#B794F4",group:"m"},
+  wishlist:   {label:"Wish List",   color:"#63B3ED",group:"o"},
+  upgrade:    {label:"Upgrade",     color:"#68D391",group:"o"},
+  experience: {label:"Experience",  color:"#F687B3",group:"o"},
 };
-
-const TYPES = {
-  wishlist: { label: "Wish List", color: "#5a8fc4" },
-  maintenance: { label: "Recurring / Maintenance", color: "#e07b39" },
-  upgrade: { label: "Upgrade", color: "#7b9e6b" },
-  experience: { label: "Experience", color: "#9e5a7b" },
+const CATS={
+  vehicle: {label:"Vehicles",       icon:"\uD83D\uDE97",c:"#3182CE"},
+  exterior:{label:"Home Exterior",  icon:"\uD83C\uDFE1",c:"#2F855A"},
+  interior:{label:"Home Interior",  icon:"\uD83D\uDECB\uFE0F",c:"#C05621"},
+  systems: {label:"Home Systems",   icon:"\u26A1",c:"#B7791F"},
+  garage:  {label:"Garage/Workshop",icon:"\uD83D\uDD27",c:"#6B46C1"},
+  tech:    {label:"Tech",           icon:"\uD83D\uDCBB",c:"#0987A0"},
+  outdoor: {label:"Outdoor & Rec",  icon:"\uD83C\uDF32",c:"#276749"},
+  travel:  {label:"Travel",         icon:"\u2708\uFE0F",c:"#97266D"},
+  trailer: {label:"Trailer",        icon:"\uD83D\uDE90",c:"#9C4221"},
+  wyoming: {label:"Wyoming Ranch",  icon:"\uD83C\uDFD4\uFE0F",c:"#744210"},
+  hobbies: {label:"Hobbies",        icon:"\uD83C\uDFAF",c:"#2C5282"},
+  property:{label:"Property",       icon:"\uD83C\uDFD8\uFE0F",c:"#22543D"},
+  safety:  {label:"Safety",         icon:"\uD83D\uDEE1\uFE0F",c:"#822727"},
 };
-
-const ALL_ITEMS = [
-  // VEHICLES
-  { id: 1, name: "Truck Transmission Rebuild", cat: "vehicle", type: "maintenance", low: 1500, high: 4000, notes: "Full rebuild depending on damage; seek shop quotes" },
-  { id: 2, name: "Truck AFM Delete / Maintenance", cat: "vehicle", type: "maintenance", low: 500, high: 1500, notes: "Prevents cylinder deactivation issues; kit + labor" },
-  { id: 3, name: "Truck Front Shocks", cat: "vehicle", type: "maintenance", low: 300, high: 800, notes: "Bilstein or Fox recommended; DIY saves labor" },
-  { id: 4, name: "Truck Rear Airbag Shocks", cat: "vehicle", type: "upgrade", low: 600, high: 1500, notes: "Firestone or Air Lift kits popular" },
-  { id: 5, name: "Truck Bed Liner", cat: "vehicle", type: "upgrade", low: 400, high: 1200, notes: "Spray-in (Line-X/Rhino) vs drop-in; spray-in lasts longer" },
-  { id: 6, name: "Mazda Maintenance Tune-Up", cat: "vehicle", type: "maintenance", low: 200, high: 600, notes: "Spark plugs, filters, fluids — varies by model/mileage" },
-  { id: 7, name: "Side-by-Side or Golf Cart", cat: "vehicle", type: "wishlist", low: 8000, high: 22000, notes: "Polaris Ranger or Can-Am Defender; gas or EV golf cart cheaper" },
-  { id: 8, name: "Car Jump Starter Packs", cat: "vehicle", type: "wishlist", low: 50, high: 200, notes: "Noco Boost Pro or similar; get 2-3 for ranch/home/trailer" },
-  { id: 9, name: "Dash Cams", cat: "vehicle", type: "wishlist", low: 100, high: 350, notes: "Blackvue or Viofo; front+rear per vehicle" },
-  { id: 10, name: "New Bikes", cat: "vehicle", type: "wishlist", low: 300, high: 2000, notes: "Per bike; mountain vs casual vs e-bike varies widely" },
-
-  // HOME EXTERIOR
-  { id: 11, name: "New Siding (Replace Wood)", cat: "home_exterior", type: "maintenance", low: 8000, high: 22000, notes: "LP SmartSide or HardiePlank; labor is bulk of cost" },
-  { id: 12, name: "Real Hot Tub + Deck", cat: "home_exterior", type: "wishlist", low: 6000, high: 18000, notes: "Hot tub $4-12k + deck build $2-8k depending on size" },
-  { id: 13, name: "2nd Toilet Room Addition", cat: "home_exterior", type: "wishlist", low: 5000, high: 15000, notes: "Rough-in plumbing + framing; full bath addition much more" },
-  { id: 14, name: "Carport", cat: "home_exterior", type: "wishlist", low: 2500, high: 8000, notes: "Steel kit carport vs custom wood structure" },
-  { id: 15, name: "Chicken Coop / Pen", cat: "home_exterior", type: "wishlist", low: 500, high: 2500, notes: "DIY build vs pre-made; size depends on flock" },
-  { id: 16, name: "Garden Area Freshen Up", cat: "home_exterior", type: "maintenance", low: 500, high: 3000, notes: "Raised beds, soil, edging, mulch" },
-  { id: 17, name: "Front Garden Area Fresh Up", cat: "home_exterior", type: "maintenance", low: 800, high: 3000, notes: "Curb appeal — plants, mulch, pavers" },
-  { id: 18, name: "Fix Drainage / French Drain System", cat: "home_exterior", type: "maintenance", low: 1500, high: 6000, notes: "Both west corners; French drain + grading" },
-  { id: 19, name: "Remove Walkway Pillars", cat: "home_exterior", type: "wishlist", low: 300, high: 1500, notes: "Depends if structural; may need mason" },
-  { id: 20, name: "Trees, Plants & Shrubs", cat: "home_exterior", type: "wishlist", low: 500, high: 3000, notes: "Varies wildly by species/maturity; native plants save water" },
-  { id: 21, name: "Jelly-Style Lights", cat: "home_exterior", type: "wishlist", low: 200, high: 700, notes: "Smart addressable LED permanent install (Jellyfish, Govee Permanent)" },
-
-  // HOME INTERIOR
-  { id: 22, name: "Bathroom Tub & Shower Remodel", cat: "home_interior", type: "wishlist", low: 3000, high: 15000, notes: "Full gut vs refinish; tile work + fixtures add cost" },
-  { id: 23, name: "New Washing Machine", cat: "home_interior", type: "maintenance", low: 600, high: 1500, notes: "Front-load LG/Samsung; consider steam option" },
-  { id: 24, name: "New Dryer", cat: "home_interior", type: "maintenance", low: 500, high: 1200, notes: "Match brand to washer; gas vs electric" },
-  { id: 25, name: "Ice Machine", cat: "home_interior", type: "wishlist", low: 500, high: 3000, notes: "Undercounter nugget ice machines are popular (GE Opal)" },
-  { id: 26, name: "New Couch", cat: "home_interior", type: "wishlist", low: 1000, high: 4000, notes: "Move old one to gameroom or library as noted" },
-  { id: 27, name: "New TV — Main Area", cat: "home_interior", type: "upgrade", low: 500, high: 2500, notes: "75-85\" QLED or OLED; LG/Samsung top tier" },
-  { id: 28, name: "New TV — Master Bedroom", cat: "home_interior", type: "upgrade", low: 400, high: 1500, notes: "55-65\" is typical bedroom size" },
-  { id: 29, name: "New TV — Gameroom (or Projector)", cat: "home_interior", type: "upgrade", low: 400, high: 2500, notes: "Short-throw projector like BenQ TK700 is great option" },
-  { id: 30, name: "New Mattress — Calvin", cat: "home_interior", type: "wishlist", low: 500, high: 2000, notes: "Purple, Saatva, or Tempur-Pedic for longevity" },
-  { id: 31, name: "New Mattress — Amelia", cat: "home_interior", type: "wishlist", low: 500, high: 2000, notes: "Same — consider adjustable bases" },
-  { id: 32, name: "Kids Bedframes", cat: "home_interior", type: "wishlist", low: 200, high: 800, notes: "Per frame; loft/bunk options save floor space" },
-  { id: 33, name: "Bookshelves", cat: "home_interior", type: "wishlist", low: 200, high: 1000, notes: "Built-in vs freestanding; Billy + Oxberg is solid budget" },
-  { id: 34, name: "New Desks", cat: "home_interior", type: "wishlist", low: 300, high: 1500, notes: "Standing desk option worth considering (Flexispot/Uplift)" },
-  { id: 35, name: "Pool Table", cat: "home_interior", type: "wishlist", low: 1500, high: 5000, notes: "8ft is standard; Olhausen or Brunswick for quality" },
-  { id: 36, name: "Game Table (DnD/Poker)", cat: "home_interior", type: "wishlist", low: 500, high: 3000, notes: "Gametables.com or custom build; combo tables available" },
-  { id: 37, name: "New Stair Carpet", cat: "home_interior", type: "maintenance", low: 800, high: 2500, notes: "Runner vs full stair; nylon holds up best" },
-  { id: 38, name: "Popcorn Maker", cat: "home_interior", type: "wishlist", low: 50, high: 300, notes: "Whirley Pop stovetop or commercial-style machine" },
-  { id: 39, name: "New Computer Monitor — Ultrawide", cat: "tech", type: "wishlist", low: 400, high: 1200, notes: "34\" curved ultrawide; LG or Samsung" },
-
-  // HOME SYSTEMS
-  { id: 40, name: "Home Camera System", cat: "home_systems", type: "wishlist", low: 300, high: 2500, notes: "Local NVR preferred; Amcrest or Reolink with NAS" },
-  { id: 41, name: "Consolidate AC Units", cat: "home_systems", type: "upgrade", low: 3000, high: 12000, notes: "Mini-split system can replace window units efficiently" },
-  { id: 42, name: "Whole Home Air Filter", cat: "home_systems", type: "upgrade", low: 500, high: 2500, notes: "HEPA whole-home unit or upgraded MERV-13 HVAC filter system" },
-  { id: 43, name: "HVAC / Air System for Under Garage", cat: "home_systems", type: "wishlist", low: 1500, high: 6000, notes: "Mini-split with heat pump covers heating + cooling" },
-  { id: 44, name: "Solar Farm (Panels)", cat: "home_systems", type: "wishlist", low: 15000, high: 40000, notes: "Sized for home + EV; check federal tax credit (30%)" },
-  { id: 45, name: "Solar Farm Batteries", cat: "home_systems", type: "wishlist", low: 10000, high: 30000, notes: "Tesla Powerwall or Enphase; pair with solar for ROI" },
-  { id: 46, name: "RO Filter Upgrade / Additional", cat: "home_systems", type: "upgrade", low: 200, high: 800, notes: "Under-sink or whole-home RO; tankless options now available" },
-  { id: 47, name: "Water Storage System", cat: "home_systems", type: "safety", low: 500, high: 3000, notes: "250-500 gal poly tank + pump; critical for emergencies" },
-  { id: 48, name: "Seal Basement Walls/Corners (Foam)", cat: "home_systems", type: "maintenance", low: 400, high: 2000, notes: "Spray foam or hydraulic cement for bugs, mice, radon" },
-  { id: 49, name: "Smart Home Gear (Local Only)", cat: "home_systems", type: "wishlist", low: 500, high: 2500, notes: "Home Assistant + Zigbee/Z-Wave; no cloud dependency" },
-  { id: 50, name: "Septic Tank Cleaning", cat: "home_systems", type: "maintenance", low: 300, high: 600, notes: "Every 3-5 years; schedule with inspection" },
-
-  // GARAGE & WORKSHOP
-  { id: 51, name: "New Impact Screw Gun", cat: "garage", type: "wishlist", low: 150, high: 350, notes: "Milwaukee M18 or DeWalt 20V are top picks" },
-  { id: 52, name: "New Impact/Torque Driver", cat: "garage", type: "wishlist", low: 150, high: 400, notes: "High-torque version for automotive work" },
-  { id: 53, name: "More Tools (General)", cat: "garage", type: "wishlist", low: 500, high: 3000, notes: "Running budget; Milwaukee/DeWalt ecosystem recommended" },
-  { id: 54, name: "Tool Chest", cat: "garage", type: "wishlist", low: 400, high: 3000, notes: "Snap-on is top tier; Craftsman/Husky for value" },
-  { id: 55, name: "Mini CNC Mill", cat: "garage", type: "wishlist", low: 500, high: 3500, notes: "Shapeoko or Onefinity for wood/aluminum work" },
-  { id: 56, name: "Upgraded 3D Printer with AMS/CFS", cat: "garage", type: "upgrade", low: 800, high: 2500, notes: "Bambu Lab X1C + AMS is the current gold standard" },
-  { id: 57, name: "Garage & Basement Storage Upgrade", cat: "garage", type: "wishlist", low: 500, high: 3000, notes: "Gladiator or Fleximounts wall shelving + overhead" },
-  { id: 58, name: "Garage Car Lift", cat: "garage", type: "wishlist", low: 3000, high: 8000, notes: "2-post lift needs 10ft+ ceiling; BendPak or Dannmar" },
-  { id: 59, name: "EM Garage / Workshop Building", cat: "garage", type: "wishlist", low: 20000, high: 60000, notes: "Detached shop; size + foundation type drives cost" },
-  { id: 60, name: "Ham Radio (License First)", cat: "hobbies", type: "wishlist", low: 100, high: 1200, notes: "Technician license is free to take; HF rig costs more" },
-
-  // TECH
-  { id: 61, name: "Nintendo Switch 2", cat: "tech", type: "wishlist", low: 400, high: 500, notes: "Expected 2025 launch; bundle with games" },
-  { id: 62, name: "Calvin New Phone", cat: "tech", type: "maintenance", low: 500, high: 1200, notes: "Every 3-4 years per your note" },
-  { id: 63, name: "Amelia New Phone", cat: "tech", type: "maintenance", low: 500, high: 1200, notes: "Every 3-4 years per your note" },
-  { id: 64, name: "Calvin Laptop", cat: "tech", type: "wishlist", low: 800, high: 2000, notes: "Depends on use case; gaming vs productivity" },
-  { id: 65, name: "Amelia Laptop", cat: "tech", type: "wishlist", low: 800, high: 2000, notes: "Same" },
-  { id: 66, name: "New Computer Hardware (Homelab + Periodic)", cat: "tech", type: "maintenance", low: 1000, high: 5000, notes: "~5yr refresh cycle; separate homelab server vs gaming" },
-  { id: 67, name: "Steam Deck or Phone Controller", cat: "tech", type: "wishlist", low: 200, high: 500, notes: "Steam Deck OLED is excellent; Backbone for phone" },
-  { id: 68, name: "Smarter Robot Vacuum", cat: "tech", type: "upgrade", low: 300, high: 900, notes: "Roborock S8 or Dreame L20 Ultra; auto-empty dock worth it" },
-  { id: 69, name: "Vacuum + Mop Combo", cat: "tech", type: "wishlist", low: 200, high: 700, notes: "Can combine with robot vac above (Dreame or Roborock)" },
-  { id: 70, name: "Headphones / Earbuds", cat: "tech", type: "wishlist", low: 100, high: 500, notes: "Sony WH-1000XM5 or AirPods Pro for ANC" },
-  { id: 71, name: "Actually Good Drone", cat: "tech", type: "wishlist", low: 500, high: 2500, notes: "DJI Mini 4 Pro (no license under 250g) or DJI Air 3" },
-
-  // OUTDOOR & RECREATION
-  { id: 72, name: "BBQ Grill", cat: "outdoor", type: "wishlist", low: 300, high: 1800, notes: "Weber or Traeger; pellet grill is very popular for set-and-forget" },
-  { id: 73, name: "New Hibachi Grill", cat: "outdoor", type: "wishlist", low: 80, high: 400, notes: "Lodge cast iron or tabletop charcoal hibachi" },
-  { id: 74, name: "Tractor", cat: "outdoor", type: "wishlist", low: 15000, high: 45000, notes: "Kubota BX or L-series; size depends on acreage" },
-  { id: 75, name: "Towable Aerator", cat: "outdoor", type: "wishlist", low: 400, high: 1500, notes: "For tractor or ATV; plug aerator beats spike" },
-  { id: 76, name: "Towable Power Rake", cat: "outdoor", type: "wishlist", low: 700, high: 2500, notes: "Dethatch + grade; PTO or pull-behind" },
-  { id: 77, name: "Plow (Tractor/Mower/SxS)", cat: "outdoor", type: "wishlist", low: 500, high: 2500, notes: "Blade vs V-plow; check compatibility with existing equipment" },
-  { id: 78, name: "Towable Dump Trailer / Wheelbarrow", cat: "outdoor", type: "wishlist", low: 800, high: 3000, notes: "ATV dump trailer is very useful for ranch/yard work" },
-  { id: 79, name: "Towable Mower", cat: "outdoor", type: "wishlist", low: 1500, high: 6000, notes: "Finish mower vs rough cut depends on terrain" },
-  { id: 80, name: "Paddle Board / Bumper Boats", cat: "outdoor", type: "wishlist", low: 400, high: 2000, notes: "Inflatable SUP boards are packable and durable" },
-  { id: 81, name: "Rowing Machine", cat: "outdoor", type: "wishlist", low: 300, high: 1800, notes: "Concept2 RowErg is the gold standard ($900)" },
-  { id: 82, name: "Camping Chairs", cat: "outdoor", type: "wishlist", low: 50, high: 300, notes: "HELINOX or GCI for quality; get 4-6" },
-  { id: 83, name: "Wok Stove / High-BTU Burner", cat: "outdoor", type: "wishlist", low: 150, high: 600, notes: "Outdoor only; Bayou Classic or Eastman Outdoors" },
-  { id: 84, name: "Sauna and/or Steam Room", cat: "outdoor", type: "wishlist", low: 3000, high: 20000, notes: "Barrel sauna DIY kit ~$3-5k; indoor steam room more" },
-  { id: 85, name: "Snowboarding Passes", cat: "outdoor", type: "experience", low: 500, high: 2000, notes: "Epic or Ikon pass covers most major resorts" },
-  { id: 86, name: "Farm Animals", cat: "outdoor", type: "wishlist", low: 500, high: 5000, notes: "Chickens cheapest to start; goats/pigs more involved" },
-  { id: 87, name: "Luggage Set", cat: "travel", type: "wishlist", low: 200, high: 900, notes: "Away or Monos; hardside 4-piece set covers all trips" },
-
-  // TRAVEL
-  { id: 88, name: "Trip to Holland", cat: "travel", type: "experience", low: 3000, high: 9000, notes: "Per couple; tulip season (April) peak pricing" },
-  { id: 89, name: "Trip to UK / Ireland / Europe", cat: "travel", type: "experience", low: 5000, high: 16000, notes: "2 weeks; Ireland is especially doable as a road trip" },
-  { id: 90, name: "Mom & Dad — Hawaii", cat: "travel", type: "experience", low: 3000, high: 9000, notes: "Maui or Kauai most scenic; book flights early" },
-  { id: 91, name: "RV Trip — Pacific Northwest", cat: "travel", type: "experience", low: 2000, high: 7000, notes: "Fuel + campgrounds + activities; amazing route" },
-  { id: 92, name: "East Coast Trip for Mom", cat: "travel", type: "experience", low: 1500, high: 5000, notes: "Flights + hotels + activities" },
-  { id: 93, name: "Annual Travel (Company $2k)", cat: "travel", type: "experience", low: 0, high: 2000, notes: "Reimbursed — use it! Plan in advance" },
-  { id: 94, name: "Sporting Events", cat: "travel", type: "experience", low: 200, high: 2000, notes: "Per event; NFL/MLB vary widely by team + seats" },
-  { id: 95, name: "Concerts", cat: "travel", type: "experience", low: 100, high: 500, notes: "Per show; presale access matters for popular artists" },
-
-  // TRAILER
-  { id: 96, name: "Trailer Awning", cat: "trailer", type: "upgrade", low: 300, high: 1200, notes: "Carefree or Lippert slide-out awning" },
-  { id: 97, name: "Trailer Generator (Onan)", cat: "trailer", type: "wishlist", low: 1000, high: 3500, notes: "Onan 2800i or 3600 LP; LP preferred if already on LP" },
-  { id: 98, name: "Trailer Tires", cat: "trailer", type: "maintenance", low: 400, high: 1200, notes: "Replace every 5-7 years regardless of tread; ST tires only" },
-  { id: 99, name: "Trailer Vacuum", cat: "trailer", type: "wishlist", low: 50, high: 200, notes: "Cordless handheld (Black+Decker) works great" },
-
-  // WYOMING RANCH
-  { id: 100, name: "Wyoming Ranch — Road Improvements", cat: "wyoming", type: "maintenance", low: 5000, high: 20000, notes: "Grading + gravel; length and grade affect cost" },
-  { id: 101, name: "Wyoming Ranch — Parking / Flat Pad + Drainage", cat: "wyoming", type: "wishlist", low: 5000, high: 15000, notes: "Gravel base + culverts for drainage" },
-  { id: 102, name: "Wyoming Ranch — Paved Pad", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "Asphalt vs concrete; concrete lasts longer in freeze-thaw" },
-  { id: 103, name: "Wyoming Ranch — Septic System", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "Conventional or mound system depending on soil perc test" },
-  { id: 104, name: "Wyoming Ranch — Well / Pump House / Storage", cat: "wyoming", type: "wishlist", low: 8000, high: 20000, notes: "Well depth is the big variable; pressure tank + house" },
-  { id: 105, name: "Wyoming Ranch — Workshop / Garage / Pole Barn", cat: "wyoming", type: "wishlist", low: 20000, high: 80000, notes: "Morton or Lester Buildings for quality; size drives cost" },
-
-  // HOBBIES
-  { id: 106, name: "Move Kiln / Upgrade Electric", cat: "hobbies", type: "wishlist", low: 500, high: 3000, notes: "240V circuit + outlet upgrade if needed; kiln relocation" },
-  { id: 107, name: "Move Pottery Stuff", cat: "hobbies", type: "wishlist", low: 200, high: 600, notes: "Depending on how involved the studio setup is" },
-  { id: 108, name: "22LR Rifle for Plinking", cat: "hobbies", type: "wishlist", low: 250, high: 700, notes: "Ruger 10/22 is the classic; Volquartsen for premium" },
-  { id: 109, name: "22LR Pistol for Plinking", cat: "hobbies", type: "wishlist", low: 200, high: 600, notes: "Ruger Mark IV or S&W Victory" },
-  { id: 110, name: "Ammunition", cat: "hobbies", type: "maintenance", low: 100, high: 400, notes: "Buy in bulk; CCI Mini-Mag is reliable 22LR" },
-  { id: 111, name: "Lego Harry Potter Set(s)", cat: "hobbies", type: "wishlist", low: 100, high: 600, notes: "Hogwarts Castle is the flagship set (~$470)" },
-  { id: 112, name: "Music Instruments", cat: "hobbies", type: "wishlist", low: 200, high: 3000, notes: "Depends on what's interesting — guitar, keys, etc." },
-  { id: 113, name: "Jewelry", cat: "hobbies", type: "wishlist", low: 200, high: 5000, notes: "Gifting or personal; varies by material" },
-  { id: 114, name: "Sunglasses", cat: "hobbies", type: "wishlist", low: 100, high: 500, notes: "Oakley or Costa for outdoor/ranch use; polarized lenses" },
-  { id: 115, name: "Glasses (Prescription)", cat: "hobbies", type: "maintenance", low: 150, high: 600, notes: "Zenni for budget; Warby Parker mid-range" },
-
-  // SAFETY
-  { id: 116, name: "Real Emergency Kit (Completed)", cat: "safety", type: "wishlist", low: 300, high: 1200, notes: "72-hr kit per person + 30-day food supply; customize for ranch" },
-  { id: 117, name: "Water Storage System (Emergency)", cat: "safety", type: "wishlist", low: 300, high: 1500, notes: "WaterBOB + 55gal barrels + Berkey filter" },
-
-  // PROPERTY
-  { id: 118, name: "Property at Bear Lake", cat: "property", type: "wishlist", low: 150000, high: 600000, notes: "Lot vs cabin; Utah side cheaper than Idaho side" },
-  { id: 119, name: "Tiny Homes (Calvin, Mom, Ranch, Hobbies)", cat: "property", type: "wishlist", low: 30000, high: 120000, notes: "Per unit; container home or prefab shell can cut costs" },
+const RECUR_OPTS=[
+  {v:0,l:"One-time"},{v:1,l:"Monthly"},{v:3,l:"Quarterly"},{v:6,l:"Every 6mo"},
+  {v:12,l:"Annually"},{v:24,l:"Every 2yr"},{v:36,l:"Every 3yr"},{v:48,l:"Every 4yr"},
+  {v:60,l:"Every 5yr"},{v:72,l:"Every 6yr"},{v:84,l:"Every 7yr"},{v:96,l:"Every 8yr"},
 ];
 
-const SUGGESTED_ITEMS = [
-  { id: "s1", name: "Whole-Home Generator (Propane/Nat Gas Standby)", cat: "home_systems", type: "wishlist", low: 4000, high: 12000, notes: "Generac or Kohler; pairs well with your ranch/emergency prep theme" },
-  { id: "s2", name: "Gun Safe / Vault", cat: "safety", type: "wishlist", low: 500, high: 3000, notes: "Required once you have 22LR + future firearms; Liberty or Fort Knox" },
-  { id: "s3", name: "Pressure Washer (Gas)", cat: "garage", type: "wishlist", low: 300, high: 800, notes: "For truck, trailer, decks, driveways; Simpson or Dewalt" },
-  { id: "s4", name: "UTV / Trailer Cargo Box", cat: "vehicle", type: "wishlist", low: 200, high: 800, notes: "Pairs with side-by-side; waterproof tool/gear storage" },
-  { id: "s5", name: "First Aid / Trauma Kit", cat: "safety", type: "wishlist", low: 100, high: 400, notes: "IFAK for ranch/camping; stop-the-bleed training pairs well" },
-  { id: "s6", name: "NAS / Home Server (Homelab)", cat: "tech", type: "wishlist", low: 400, high: 1500, notes: "Synology or TrueNAS; local media, backups, Home Assistant" },
-  { id: "s7", name: "Wyoming Ranch Solar + Battery Off-Grid", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "If no grid tie; pairs with well pump + cabin power needs" },
-  { id: "s8", name: "Fire Pit / Outdoor Fireplace", cat: "outdoor", type: "wishlist", low: 300, high: 4000, notes: "DIY block pit vs gas fire table vs built-in masonry" },
-  { id: "s9", name: "Outdoor Projector + Screen (Movie Nights)", cat: "outdoor", type: "wishlist", low: 400, high: 1200, notes: "Great for backyard gatherings; pairs with the grill setup" },
-  { id: "s10", name: "Annual Vehicle Registration / Insurance Review", cat: "vehicle", type: "maintenance", low: 0, high: 200, notes: "Recurring — shop insurance annually; bundle for savings" },
-  { id: "s11", name: "Welder (MIG or TIG)", cat: "garage", type: "wishlist", low: 400, high: 2000, notes: "Lincoln Electric or Miller; useful with ranch + tractor repairs" },
-  { id: "s12", name: "Roof Inspection / Replacement Fund", cat: "home_exterior", type: "maintenance", low: 500, high: 20000, notes: "Inspect every 5 yrs; budget separately for full replacement" },
+// [name, cat, type, low, high, startMonth, recur, dur, notes]
+const SEED=[
+  ["Truck Transmission Rebuild","vehicle","repair",1500,4000,1,0,2,"Full rebuild; seek shop quotes"],
+  ["Truck AFM Delete","vehicle","preventive",500,1500,3,0,1,"Prevents cylinder deactivation failure"],
+  ["Truck Front Shocks","vehicle","routine",300,800,6,48,1,"Bilstein/Fox; ~every 4yr"],
+  ["Truck Rear Airbag Shocks","vehicle","upgrade",600,1500,9,0,1,"Firestone or Air Lift kits"],
+  ["Truck Bed Liner","vehicle","upgrade",400,1200,12,0,1,"Spray-in Line-X lasts longer"],
+  ["Mazda Tune-Up","vehicle","routine",200,600,3,12,1,"Annual: plugs, filters, fluids"],
+  ["Side-by-Side / Golf Cart","vehicle","wishlist",8000,22000,24,0,1,"Polaris Ranger or Can-Am Defender"],
+  ["Car Jump Starter Packs","vehicle","wishlist",50,200,6,0,1,"Noco Boost; 2-3 for ranch/home/trailer"],
+  ["Dash Cams","vehicle","wishlist",100,350,12,0,1,"Blackvue front+rear per vehicle"],
+  ["New Bikes","vehicle","wishlist",300,2000,18,0,1,"Per bike; e-bike option worth considering"],
+  ["New Siding (Replace Wood)","exterior","repair",8000,22000,6,0,3,"LP SmartSide or HardiePlank"],
+  ["Real Hot Tub + Deck","exterior","wishlist",6000,18000,36,0,3,"Hot tub + deck combined project"],
+  ["2nd Toilet Room Addition","exterior","wishlist",5000,15000,48,0,3,"Rough plumbing + framing"],
+  ["Carport","exterior","wishlist",2500,8000,60,0,2,"Steel kit vs custom wood"],
+  ["Chicken Coop / Pen","exterior","wishlist",500,2500,18,0,2,"DIY or pre-made"],
+  ["Garden Area Freshen Up","exterior","routine",500,3000,4,36,1,"Raised beds, soil, mulch every 3yr"],
+  ["Front Garden Fresh Up","exterior","routine",800,3000,4,36,1,"Curb appeal refresh every 3yr"],
+  ["Fix Drainage / French Drain","exterior","repair",1500,6000,2,0,2,"Both west corners; grading + drain"],
+  ["Remove Walkway Pillars","exterior","wishlist",300,1500,24,0,1,"Check if structural first"],
+  ["Trees, Plants & Shrubs","exterior","routine",500,3000,12,24,1,"Ongoing additions every 2yr"],
+  ["Jelly-Style Permanent Lights","exterior","wishlist",200,700,18,0,1,"Jellyfish or Govee permanent LEDs"],
+  ["Roof Inspection + Fund","exterior","routine",500,20000,6,60,1,"Inspect every 5yr; budget replacement"],
+  ["Bathroom Tub & Shower Remodel","interior","wishlist",3000,15000,24,0,2,"Full gut vs refinish"],
+  ["New Washing Machine","interior","replacement",600,1500,36,120,1,"LG/Samsung; ~10yr cycle"],
+  ["New Dryer","interior","replacement",500,1200,36,120,1,"Match brand to washer"],
+  ["Ice Machine","interior","wishlist",500,3000,24,0,1,"Undercounter nugget ice (GE Opal)"],
+  ["New Couch","interior","wishlist",1000,4000,18,0,1,"Old one moves to gameroom"],
+  ["TV \u2014 Main Area","interior","replacement",500,2500,24,96,1,"75-85\" QLED/OLED; ~8yr cycle"],
+  ["TV \u2014 Master Bedroom","interior","replacement",400,1500,24,96,1,"55-65\" recommended"],
+  ["TV \u2014 Gameroom / Projector","interior","replacement",400,2500,36,96,1,"Short-throw projector option"],
+  ["Mattress \u2014 Calvin","interior","replacement",500,2000,24,96,1,"Purple, Saatva, or Tempur-Pedic"],
+  ["Mattress \u2014 Amelia","interior","replacement",500,2000,24,96,1,"Consider adjustable bases"],
+  ["Kids Bedframes","interior","wishlist",200,800,12,0,1,"Loft/bunk saves floor space"],
+  ["Bookshelves","interior","wishlist",200,1000,18,0,1,"Built-in vs freestanding"],
+  ["New Desks","interior","wishlist",300,1500,24,0,1,"Standing desk worth considering"],
+  ["Pool Table","interior","wishlist",1500,5000,36,0,1,"8ft; Olhausen or Brunswick"],
+  ["Game Table (DnD/Poker)","interior","wishlist",500,3000,30,0,1,"Combo tables available"],
+  ["New Stair Carpet","interior","replacement",800,2500,12,84,1,"Nylon; ~7yr cycle"],
+  ["Popcorn Maker","interior","wishlist",50,300,6,0,1,"Whirley Pop or commercial-style"],
+  ["Home Camera System","systems","wishlist",300,2500,12,0,1,"Local NVR; Amcrest or Reolink"],
+  ["Consolidate AC Units","systems","upgrade",3000,12000,24,0,2,"Mini-split replaces window units"],
+  ["Whole Home Air Filter","systems","upgrade",500,2500,18,0,1,"HEPA or MERV-13 system"],
+  ["HVAC for Under Garage","systems","wishlist",1500,6000,36,0,1,"Mini-split with heat pump"],
+  ["Solar Farm \u2014 Panels","systems","wishlist",15000,40000,48,0,6,"30% federal tax credit applies"],
+  ["Solar Farm \u2014 Batteries","systems","wishlist",10000,30000,60,0,2,"Tesla Powerwall or Enphase"],
+  ["RO Filter Upgrade","systems","upgrade",200,800,12,0,1,"Under-sink or whole-home"],
+  ["Water Storage System","systems","wishlist",500,3000,6,0,1,"250-500 gal poly tank + pump"],
+  ["Seal Basement Walls","systems","preventive",400,2000,2,0,1,"Spray foam for bugs, mice, radon"],
+  ["Smart Home (Local Only)","systems","wishlist",500,2500,18,0,1,"Home Assistant + Zigbee/Z-Wave"],
+  ["Septic Tank Cleaning","systems","routine",300,600,3,48,1,"Every 3-5 years"],
+  ["New Impact Screw Gun","garage","wishlist",150,350,3,0,1,"Milwaukee M18 or DeWalt 20V"],
+  ["New Impact/Torque Driver","garage","wishlist",150,400,3,0,1,"High-torque for automotive work"],
+  ["Tools \u2014 General Budget","garage","wishlist",500,3000,6,60,1,"Ongoing Milwaukee/DeWalt ecosystem"],
+  ["Tool Chest","garage","wishlist",400,3000,12,0,1,"Snap-on top; Craftsman/Husky value"],
+  ["Mini CNC Mill","garage","wishlist",500,3500,36,0,1,"Shapeoko or Onefinity"],
+  ["3D Printer Upgrade (AMS/CFS)","garage","upgrade",800,2500,18,0,1,"Bambu Lab X1C + AMS"],
+  ["Garage & Basement Storage","garage","wishlist",500,3000,12,0,1,"Gladiator or Fleximounts"],
+  ["Garage Car Lift","garage","wishlist",3000,8000,48,0,2,"2-post; 10ft+ ceiling needed"],
+  ["EM Garage / Workshop Building","garage","wishlist",20000,60000,60,0,6,"Detached shop"],
+  ["Pressure Washer (Gas)","garage","wishlist",300,800,6,0,1,"Simpson or Dewalt"],
+  ["Welder (MIG or TIG)","garage","wishlist",400,2000,24,0,1,"Lincoln or Miller"],
+  ["Nintendo Switch 2","tech","wishlist",400,500,1,0,1,"Bundle with games"],
+  ["Calvin \u2014 New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
+  ["Amelia \u2014 New Phone","tech","replacement",500,1200,18,42,1,"Every 3-4 years"],
+  ["Calvin \u2014 Laptop","tech","wishlist",800,2000,12,0,1,"Gaming vs productivity"],
+  ["Amelia \u2014 Laptop","tech","wishlist",800,2000,18,0,1,""],
+  ["Computer Hardware Refresh","tech","replacement",1000,5000,12,60,2,"~5yr cycle; homelab + gaming"],
+  ["Ultrawide Monitor","tech","wishlist",400,1200,24,0,1,"34\" curved; LG or Samsung"],
+  ["Steam Deck / Phone Controller","tech","wishlist",200,500,6,0,1,"Steam Deck OLED excellent"],
+  ["Robot Vacuum Upgrade","tech","upgrade",300,900,12,0,1,"Roborock S8 or Dreame L20"],
+  ["Vacuum + Mop Combo","tech","wishlist",200,700,6,0,1,"Can combine with robot vac"],
+  ["Headphones / Earbuds","tech","wishlist",100,500,6,0,1,"Sony WH-1000XM5 or AirPods Pro"],
+  ["Drone (Actually Good)","tech","wishlist",500,2500,18,0,1,"DJI Mini 4 Pro or Air 3"],
+  ["NAS / Home Server","tech","wishlist",400,1500,12,0,1,"Synology; media, backups, HA"],
+  ["BBQ Grill","outdoor","wishlist",300,1800,3,0,1,"Weber or Traeger pellet grill"],
+  ["New Hibachi Grill","outdoor","wishlist",80,400,3,0,1,"Lodge cast iron or tabletop"],
+  ["Tractor","outdoor","wishlist",15000,45000,36,0,1,"Kubota BX or L-series"],
+  ["Towable Aerator","outdoor","wishlist",400,1500,42,0,1,"Plug aerator beats spike"],
+  ["Towable Power Rake","outdoor","wishlist",700,2500,42,0,1,"Dethatch + grade"],
+  ["Plow Attachment","outdoor","wishlist",500,2500,48,0,1,"Check equipment compatibility"],
+  ["Towable Dump Trailer","outdoor","wishlist",800,3000,36,0,1,"Very useful for ranch/yard"],
+  ["Towable Mower","outdoor","wishlist",1500,6000,48,0,1,"Finish vs rough cut by terrain"],
+  ["Paddle Boards / Bumper Boats","outdoor","wishlist",400,2000,12,0,1,"Inflatable SUPs are packable"],
+  ["Rowing Machine","outdoor","wishlist",300,1800,6,0,1,"Concept2 RowErg ~$900"],
+  ["Camping Chairs","outdoor","wishlist",50,300,1,0,1,"HELINOX or GCI; get 4-6"],
+  ["Wok / High-BTU Burner","outdoor","wishlist",150,600,3,0,1,"Bayou Classic; outdoor only"],
+  ["Sauna / Steam Room","outdoor","wishlist",3000,20000,60,0,3,"Barrel sauna DIY ~$3-5k"],
+  ["Snowboarding Passes","outdoor","experience",500,2000,11,12,1,"Epic or Ikon \u2014 annual"],
+  ["Farm Animals","outdoor","wishlist",500,5000,24,0,1,"Chickens cheapest to start"],
+  ["Fire Pit / Fireplace","outdoor","wishlist",300,4000,12,0,2,"DIY vs gas table vs masonry"],
+  ["Outdoor Projector + Screen","outdoor","wishlist",400,1200,18,0,1,"Great for backyard movie nights"],
+  ["Trip to Holland","travel","experience",3000,9000,18,0,1,"Tulip season April; book early"],
+  ["Trip to UK/Ireland/Europe","travel","experience",5000,16000,36,0,1,"2 weeks; Ireland great road trip"],
+  ["Mom & Dad \u2014 Hawaii","travel","experience",3000,9000,24,0,1,"Maui or Kauai; book flights early"],
+  ["RV Trip \u2014 Pacific NW","travel","experience",2000,7000,12,0,1,"Fuel + campgrounds + activities"],
+  ["East Coast Trip for Mom","travel","experience",1500,5000,30,0,1,"Flights + hotels + activities"],
+  ["Annual Travel ($2k Company)","travel","experience",0,2000,12,12,1,"Reimbursed \u2014 use it every year"],
+  ["Sporting Events","travel","experience",200,2000,3,12,1,"NFL/MLB vary by team"],
+  ["Concerts","travel","experience",100,500,6,12,1,"Presale access matters"],
+  ["Luggage Set","travel","wishlist",200,900,6,0,1,"Away or Monos hardside 4-piece"],
+  ["Trailer Awning","trailer","upgrade",300,1200,6,0,1,"Carefree or Lippert slide-out"],
+  ["Trailer Generator (Onan)","trailer","wishlist",1000,3500,12,0,1,"Onan 2800i; LP preferred"],
+  ["Trailer Tires","trailer","routine",400,1200,1,72,1,"Every 5-7yr regardless of tread"],
+  ["Trailer Vacuum","trailer","wishlist",50,200,3,0,1,"Cordless handheld works great"],
+  ["WY Ranch \u2014 Road Improvements","wyoming","routine",5000,20000,12,60,2,"Grading + gravel every ~5yr"],
+  ["WY Ranch \u2014 Parking / Flat Pad","wyoming","wishlist",5000,15000,24,0,2,"Gravel base + culverts"],
+  ["WY Ranch \u2014 Paved Pad","wyoming","wishlist",8000,25000,36,0,2,"Concrete for freeze-thaw"],
+  ["WY Ranch \u2014 Septic System","wyoming","wishlist",8000,25000,48,0,3,"Soil perc test first"],
+  ["WY Ranch \u2014 Well / Pump House","wyoming","wishlist",8000,20000,36,0,3,"Well depth is the big variable"],
+  ["WY Ranch \u2014 Workshop / Pole Barn","wyoming","wishlist",20000,80000,60,0,6,"Morton or Lester Buildings"],
+  ["WY Ranch \u2014 Solar Off-Grid","wyoming","wishlist",8000,25000,48,0,3,"Pairs with well pump + cabin"],
+  ["Ham Radio","hobbies","wishlist",100,1200,12,0,1,"Technician license is free"],
+  ["Move Kiln / Upgrade Electric","hobbies","wishlist",500,3000,6,0,1,"240V circuit upgrade if needed"],
+  ["Move Pottery Stuff","hobbies","wishlist",200,600,6,0,1,"Studio relocation"],
+  ["22LR Rifle for Plinking","hobbies","wishlist",250,700,3,0,1,"Ruger 10/22 is the classic"],
+  ["22LR Pistol for Plinking","hobbies","wishlist",200,600,6,0,1,"Ruger Mark IV or S&W Victory"],
+  ["Ammunition","hobbies","routine",100,400,1,6,1,"Buy in bulk bi-annually"],
+  ["Lego Harry Potter","hobbies","wishlist",100,600,6,0,1,"Hogwarts Castle ~$470"],
+  ["Music Instruments","hobbies","wishlist",200,3000,24,0,1,"Guitar, keys, etc."],
+  ["Jewelry","hobbies","wishlist",200,5000,18,0,1,"Gifting or personal"],
+  ["Sunglasses","hobbies","wishlist",100,500,3,0,1,"Oakley or Costa; polarized"],
+  ["Glasses (Prescription)","hobbies","routine",150,600,6,24,1,"Zenni budget; Warby mid-range"],
+  ["Tiny Homes","property","wishlist",30000,120000,72,0,6,"Per unit; container home saves cost"],
+  ["Property at Bear Lake","property","wishlist",150000,600000,96,0,1,"Lot vs cabin; Utah side cheaper"],
+  ["Real Emergency Kit","safety","wishlist",300,1200,3,0,1,"72-hr + 30-day food supply"],
+  ["Water Storage (Emergency)","safety","wishlist",300,1500,3,0,1,"WaterBOB + barrels + Berkey"],
+  ["Gun Safe / Vault","safety","wishlist",500,3000,6,0,1,"Liberty or Fort Knox"],
+  ["First Aid / Trauma Kit","safety","wishlist",100,400,2,0,1,"Ranch/camping; stop-the-bleed"],
+  ["Whole-Home Generator","safety","wishlist",4000,12000,24,0,2,"Generac or Kohler standby"],
 ];
 
-function WishList() {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [activeType, setActiveType] = useState("all");
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("category");
-  const [tab, setTab] = useState("list"); // list | suggested | summary
-  const [approvedSuggestions, setApprovedSuggestions] = useState([]);
-  const [rejectedSuggestions, setRejectedSuggestions] = useState([]);
+// Suggestion items (not in main list — approve to add)
+// [id, name, cat, type, low, high, startMonth, recur, dur, notes]
+const SUGGESTIONS_SEED=[
+  ["sg1","UTV / Trailer Cargo Box","vehicle","wishlist",200,800,24,0,1,"Pairs with side-by-side; waterproof tool/gear storage"],
+  ["sg2","Annual Insurance Review","vehicle","routine",0,200,1,12,1,"Shop insurance annually; bundle for savings"],
+  ["sg3","Outdoor Kitchen / Pergola","exterior","wishlist",5000,25000,48,0,4,"Covered outdoor cooking + seating area"],
+  ["sg4","Driveway Reseal / Repair","exterior","preventive",500,3000,12,60,1,"Asphalt or concrete; every ~5yr"],
+  ["sg5","Window Treatments / Blinds","interior","wishlist",800,4000,18,0,1,"Shutters vs cellular shades per room"],
+  ["sg6","Whole-Home Water Softener","systems","upgrade",800,3000,12,0,1,"Fleck or Kinetico; extends appliance life"],
+  ["sg7","Cordless Tool Battery Refresh","garage","routine",200,600,6,48,1,"Milwaukee M18 packs degrade; replace every ~4yr"],
+  ["sg8","Dashcam Cloud Subscription","tech","routine",60,120,1,12,1,"Blackvue or Viofo cloud plans"],
+  ["sg9","Annual National Parks Pass","outdoor","experience",80,80,1,12,1,"America the Beautiful; covers entry fees"],
+  ["sg10","Disney / Universal Trip","travel","experience",4000,14000,30,0,1,"Resort + tickets; 4-5 days recommended"],
+  ["sg11","Kayaks / Canoe","outdoor","wishlist",600,3000,18,0,1,"Inflatable kayaks are packable; Old Town quality"],
+  ["sg12","Solar Attic Fan","systems","upgrade",300,1200,18,0,1,"Reduces cooling load; improves attic ventilation"],
+];
 
-  const allItems = useMemo(() => {
-    const approved = SUGGESTED_ITEMS.filter(s => approvedSuggestions.includes(s.id));
-    return [...ALL_ITEMS, ...approved.map(s => ({ ...s, id: `approved_${s.id}` }))];
-  }, [approvedSuggestions]);
+const ITEMS_INIT = SEED.map((r,i)=>({
+  id:i+1, name:r[0], cat:r[1], type:r[2], low:r[3], high:r[4],
+  startMonth:r[5], recur:r[6], dur:r[7], notes:r[8]||""
+}));
 
-  const filtered = useMemo(() => {
-    return allItems.filter(item => {
-      if (activeCategory !== "all" && item.cat !== activeCategory) return false;
-      if (activeType !== "all" && item.type !== activeType) return false;
-      if (search && !item.name.toLowerCase().includes(search.toLowerCase()) && !item.notes.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === "priceAsc") return a.low - b.low;
-      if (sortBy === "priceDesc") return b.high - a.high;
-      if (sortBy === "category") return a.cat.localeCompare(b.cat);
-      return a.name.localeCompare(b.name);
-    });
-  }, [allItems, activeCategory, activeType, search, sortBy]);
+const SUGG_INIT = SUGGESTIONS_SEED.map(r=>({
+  id:r[0], name:r[1], cat:r[2], type:r[3], low:r[4], high:r[5],
+  startMonth:r[6], recur:r[7], dur:r[8], notes:r[9]||""
+}));
 
-  const totalLow = allItems.reduce((s, i) => s + i.low, 0);
-  const totalHigh = allItems.reduce((s, i) => s + i.high, 0);
-  const filteredLow = filtered.reduce((s, i) => s + i.low, 0);
-  const filteredHigh = filtered.reduce((s, i) => s + i.high, 0);
+// ── helpers ──────────────────────────────────────────────────────────────────
+const m2label=m=>{if(m<1||m>TM)return"";const y=SY+Math.floor((m-1)/12),mo=(m-1)%12;return`${MNS[mo]} ${y}`;};
+const occs=it=>{const r=[];let m=it.startMonth;while(m>=1&&m<=TM){r.push(m);if(!it.recur)break;m+=it.recur;}return r;};
+const cost20=it=>occs(it).length*Math.round((it.low+it.high)/2);
+const fmt=n=>n>=1000?`$${(n/1000).toFixed(n%1000===0?0:1)}k`:`$${n}`;
+const fmtN=n=>"$"+n.toLocaleString();
+const midOf=it=>Math.round((it.low+it.high)/2);
 
-  const fmt = (n) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
-  const fmtFull = (n) => `$${n.toLocaleString()}`;
+// ── Excel I/O ────────────────────────────────────────────────────────────────
+function exportXLSX(items){
+  const data=items.map(it=>({
+    ID:it.id, Name:it.name, Category:it.cat, Type:it.type,
+    "Cost Low":it.low, "Cost High":it.high,
+    "Start Month":it.startMonth, "Recur Months":it.recur,
+    "Duration Months":it.dur, Notes:it.notes
+  }));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws["!cols"]=[5,36,18,14,10,10,13,13,15,50].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Wish List");
+  XLSX.writeFile(wb,"WishList.xlsx");
+}
 
-  const pendingSuggestions = SUGGESTED_ITEMS.filter(
-    s => !approvedSuggestions.includes(s.id) && !rejectedSuggestions.includes(s.id)
-  );
+function parseXLSX(file,onLoad){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws);
+      const items=rows.map((r,i)=>{
+        const low=+(r["Cost Low"]||r["Est. Low"]||r["low"]||0);
+        const high=+(r["Cost High"]||r["Est. High"]||r["high"]||0);
+        const cat=r.Category||r.cat||"vehicle";
+        const type=r.Type||r.type||"wishlist";
+        return{
+          id:r.ID||(crypto.randomUUID?(crypto.randomUUID()):(Date.now()*1e9+Math.floor(Math.random()*1e9)+i)),
+          name:String(r.Name||r["Item Name"]||r.name||"Unnamed"),
+          cat:CATS[cat]?cat:"vehicle",
+          type:TYPES[type]?type:"wishlist",
+          low,high,
+          startMonth:Math.max(1,Math.min(TM,+(r["Start Month"]||r.startMonth||1))),
+          recur:+(r["Recur Months"]||r.recur||0),
+          dur:Math.max(1,+(r["Duration Months"]||r.dur||1)),
+          notes:String(r.Notes||r["Notes / Tips"]||""),
+        };
+      });
+      onLoad(items);
+    }catch(err){alert("Error reading file: "+err.message);}
+  };
+  rd.readAsArrayBuffer(file);
+}
 
-  const catCounts = useMemo(() => {
-    const counts = {};
-    allItems.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
-    return counts;
-  }, [allItems]);
+// ── EditModal ─────────────────────────────────────────────────────────────────
+function EditModal({item,onSave,onDelete,onClose}){
+  const isNew=!!item._new;
+  const[f,setF]=useState({...item});
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
 
-  return (
-    <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", background: "#1a1710", minHeight: "100vh", color: "#e8e0cc" }}>
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #2a2418 0%, #1a1710 100%)", borderBottom: "2px solid #5a4a2a", padding: "24px 32px" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "#e8c87a", letterSpacing: 1, textTransform: "uppercase" }}>
-                📋 Master Wish List
-              </h1>
-              <p style={{ margin: "4px 0 0", color: "#a09070", fontSize: 13 }}>
-                {allItems.length} items · Est. {fmtFull(totalLow)} – {fmtFull(totalHigh)}
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["list", "suggested", "summary"].map(t => (
-                <button key={t} onClick={() => setTab(t)} style={{
-                  padding: "8px 18px", borderRadius: 6, border: "1px solid",
-                  borderColor: tab === t ? "#e8c87a" : "#4a3a1a",
-                  background: tab === t ? "#e8c87a" : "transparent",
-                  color: tab === t ? "#1a1710" : "#a09070",
-                  fontFamily: "inherit", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                  textTransform: "capitalize"
-                }}>
-                  {t === "suggested" ? `Suggestions (${pendingSuggestions.length})` : t}
-                </button>
-              ))}
-            </div>
+  const sYr=SY+Math.floor(((f.startMonth||1)-1)/12);
+  const sMo=((f.startMonth||1)-1)%12+1;
+  const setDate=(yr,mo)=>set("startMonth",(yr-SY)*12+mo);
+
+  const iS={padding:"6px 10px",background:"#2a2418",border:"1px solid #4a3a1a",borderRadius:5,
+    color:"#e8e0cc",fontFamily:"Georgia,serif",fontSize:13,outline:"none",
+    width:"100%",boxSizing:"border-box"};
+  const lS={fontSize:11,color:"#908070",marginBottom:3,display:"block"};
+  const occsArr=occs(f);
+  const total20=occsArr.length*midOf(f);
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.75)",
+      display:"flex",justifyContent:"center",alignItems:"flex-start",
+      padding:"32px 16px",overflowY:"auto"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{background:"#231f14",border:"2px solid #5a4a2a",borderRadius:10,
+        padding:"22px 24px",width:"100%",maxWidth:520,boxShadow:"0 12px 48px rgba(0,0,0,0.7)"}}>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <h3 style={{margin:0,color:"#e8c87a",fontSize:15,fontWeight:700}}>
+            {isNew?"+ Add New Item":"\u270F\uFE0F Edit Item"}
+          </h3>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#605040",cursor:"pointer",fontSize:20,lineHeight:1}}>\u2715</button>
+        </div>
+
+        <div style={{marginBottom:11}}>
+          <label style={lS}>Item Name</label>
+          <input style={iS} value={f.name||""} onChange={e=>set("name",e.target.value)} placeholder="Item name\u2026"/>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:11}}>
+          <div>
+            <label style={lS}>Category</label>
+            <select style={iS} value={f.cat||"vehicle"} onChange={e=>set("cat",e.target.value)}>
+              {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lS}>Type</label>
+            <select style={iS} value={f.type||"wishlist"} onChange={e=>set("type",e.target.value)}>
+              <optgroup label="\u2500\u2500 Maintenance">
+                {["repair","preventive","routine","replacement"].map(k=><option key={k} value={k}>{TYPES[k].label}</option>)}
+              </optgroup>
+              <optgroup label="\u2500\u2500 Other">
+                {["wishlist","upgrade","experience"].map(k=><option key={k} value={k}>{TYPES[k].label}</option>)}
+              </optgroup>
+            </select>
           </div>
         </div>
-      </div>
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 32px" }}>
-
-        {tab === "list" && (
-          <>
-            {/* Filters */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
-              <input
-                placeholder="🔍 Search items..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
-                  background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit",
-                  fontSize: 13, width: 220, outline: "none"
-                }}
-              />
-              <select value={activeType} onChange={e => setActiveType(e.target.value)} style={{
-                padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
-                background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit", fontSize: 13, cursor: "pointer"
-              }}>
-                <option value="all">All Types</option>
-                {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{
-                padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
-                background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit", fontSize: 13, cursor: "pointer"
-              }}>
-                <option value="category">Sort by Category</option>
-                <option value="name">Sort by Name</option>
-                <option value="priceAsc">Sort by Price ↑</option>
-                <option value="priceDesc">Sort by Price ↓</option>
-              </select>
-              {(activeCategory !== "all" || activeType !== "all" || search) && (
-                <span style={{ color: "#a09070", fontSize: 12 }}>
-                  {filtered.length} items · {fmt(filteredLow)}–{fmt(filteredHigh)}
-                </span>
-              )}
-            </div>
-
-            {/* Category Pills */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
-              <button onClick={() => setActiveCategory("all")} style={{
-                padding: "5px 14px", borderRadius: 20, border: "1px solid",
-                borderColor: activeCategory === "all" ? "#e8c87a" : "#4a3a1a",
-                background: activeCategory === "all" ? "#e8c87a22" : "transparent",
-                color: activeCategory === "all" ? "#e8c87a" : "#706050",
-                fontSize: 12, cursor: "pointer", fontFamily: "inherit"
-              }}>All ({allItems.length})</button>
-              {Object.entries(CATEGORIES).map(([k, v]) => (
-                catCounts[k] ? (
-                  <button key={k} onClick={() => setActiveCategory(activeCategory === k ? "all" : k)} style={{
-                    padding: "5px 14px", borderRadius: 20, border: "1px solid",
-                    borderColor: activeCategory === k ? v.color : "#4a3a1a",
-                    background: activeCategory === k ? v.color + "22" : "transparent",
-                    color: activeCategory === k ? v.color : "#706050",
-                    fontSize: 12, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
-                  }}>
-                    {v.icon} {v.label} ({catCounts[k]})
-                  </button>
-                ) : null
-              ))}
-            </div>
-
-            {/* Items Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
-              {filtered.map(item => {
-                const cat = CATEGORIES[item.cat];
-                const type = TYPES[item.type] || TYPES.wishlist;
-                return (
-                  <div key={item.id} style={{
-                    background: "#231f14", border: "1px solid #3a3020",
-                    borderRadius: 8, padding: "14px 16px",
-                    borderLeft: `3px solid ${cat?.color || "#666"}`
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#e8e0cc", lineHeight: 1.3 }}>{item.name}</div>
-                      <div style={{
-                        fontSize: 13, fontWeight: 700, color: "#e8c87a",
-                        whiteSpace: "nowrap", fontFamily: "'Courier New', monospace"
-                      }}>
-                        {fmt(item.low)}–{fmt(item.high)}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
-                      <span style={{
-                        fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                        background: (cat?.color || "#666") + "22", color: cat?.color || "#666",
-                        border: `1px solid ${(cat?.color || "#666")}44`
-                      }}>{cat?.icon} {cat?.label}</span>
-                      <span style={{
-                        fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                        background: type.color + "22", color: type.color,
-                        border: `1px solid ${type.color}44`
-                      }}>{type.label}</span>
-                    </div>
-                    {item.notes && (
-                      <div style={{ fontSize: 12, color: "#807060", lineHeight: 1.5 }}>{item.notes}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {tab === "suggested" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:11}}>
           <div>
-            <div style={{ marginBottom: 20, padding: "14px 20px", background: "#2a2418", borderRadius: 8, border: "1px solid #4a3a1a" }}>
-              <p style={{ margin: 0, color: "#a09070", fontSize: 13 }}>
-                These items fit themes already in your list. Review each one — approve to add it to your master list, or reject to dismiss it.
-                {approvedSuggestions.length > 0 && ` · ✅ ${approvedSuggestions.length} approved`}
-                {rejectedSuggestions.length > 0 && ` · ❌ ${rejectedSuggestions.length} rejected`}
-              </p>
-            </div>
-            {pendingSuggestions.length === 0 && (
-              <div style={{ textAlign: "center", color: "#706050", padding: 60, fontSize: 15 }}>
-                All suggestions reviewed! ✓ Switch to the List tab to see approved items.
-              </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 14 }}>
-              {pendingSuggestions.map(item => {
-                const cat = CATEGORIES[item.cat];
-                const type = TYPES[item.type] || TYPES.wishlist;
-                return (
-                  <div key={item.id} style={{
-                    background: "#231f14", border: "1px solid #3a3020",
-                    borderRadius: 8, padding: "16px", borderLeft: `3px solid ${cat?.color || "#666"}`
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#e8e0cc" }}>{item.name}</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e8c87a", whiteSpace: "nowrap", fontFamily: "monospace" }}>
-                        {fmt(item.low)}–{fmt(item.high)}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: (cat?.color || "#666") + "22", color: cat?.color, border: `1px solid ${(cat?.color || "#666")}44` }}>{cat?.icon} {cat?.label}</span>
-                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: type.color + "22", color: type.color, border: `1px solid ${type.color}44` }}>{type.label}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: "#807060", marginBottom: 14 }}>{item.notes}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setApprovedSuggestions(p => [...p, item.id])} style={{
-                        flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #4a7a3a",
-                        background: "#1a3a1a", color: "#7ae87a", cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 13, fontWeight: 700
-                      }}>✓ Add to List</button>
-                      <button onClick={() => setRejectedSuggestions(p => [...p, item.id])} style={{
-                        flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #5a2a2a",
-                        background: "#2a1a1a", color: "#e87a7a", cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 13, fontWeight: 700
-                      }}>✕ Not Interested</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <label style={lS}>Cost Low ($)</label>
+            <input style={iS} type="number" min={0} value={f.low||0} onChange={e=>set("low",+e.target.value)}/>
           </div>
-        )}
-
-        {tab === "summary" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
-              {Object.entries(CATEGORIES).map(([k, v]) => {
-                const items = allItems.filter(i => i.cat === k);
-                if (!items.length) return null;
-                const low = items.reduce((s, i) => s + i.low, 0);
-                const high = items.reduce((s, i) => s + i.high, 0);
-                return (
-                  <div key={k} style={{
-                    background: "#231f14", border: `1px solid ${v.color}33`,
-                    borderRadius: 8, padding: "16px", borderTop: `3px solid ${v.color}`
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <div style={{ color: v.color, fontWeight: 700, fontSize: 14 }}>{v.icon} {v.label}</div>
-                      <div style={{ color: "#706050", fontSize: 12 }}>{items.length} items</div>
-                    </div>
-                    <div style={{ color: "#e8c87a", fontSize: 18, fontWeight: 700, fontFamily: "monospace" }}>
-                      {fmtFull(low)} – {fmtFull(high)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ background: "#2a2418", borderRadius: 10, padding: "20px 24px", border: "2px solid #5a4a2a" }}>
-              <div style={{ fontSize: 13, color: "#a09070", marginBottom: 4 }}>Total Estimated Range</div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: "#e8c87a", fontFamily: "monospace" }}>
-                {fmtFull(totalLow)} – {fmtFull(totalHigh)}
-              </div>
-              <div style={{ fontSize: 12, color: "#706050", marginTop: 4 }}>
-                Across {allItems.length} items · Estimates are ranges; actual costs vary by vendor, region, and scope.
-              </div>
-            </div>
+            <label style={lS}>Cost High ($)</label>
+            <input style={iS} type="number" min={0} value={f.high||0} onChange={e=>set("high",+e.target.value)}/>
           </div>
-        )}
+        </div>
+
+        <div style={{marginBottom:11}}>
+          <label style={lS}>Target Start</label>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <select style={iS} value={sMo} onChange={e=>setDate(sYr,+e.target.value)}>
+              {MNS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+            </select>
+            <select style={iS} value={sYr} onChange={e=>setDate(+e.target.value,sMo)}>
+              {Array.from({length:20},(_,i)=>SY+i).map(yr=><option key={yr} value={yr}>{yr}</option>)}
+            </select>
+          </div>
+          <div style={{fontSize:10,color:"#605040",marginTop:3}}>Month {f.startMonth||1} of 240</div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:11}}>
+          <div>
+            <label style={lS}>Recurrence</label>
+            <select style={iS} value={RECUR_OPTS.some(o=>o.v===f.recur)?f.recur:-1}
+              onChange={e=>{const v=+e.target.value;if(v>=0)set("recur",v);}}>
+              {RECUR_OPTS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lS}>Duration (months)</label>
+            <input style={iS} type="number" min={1} value={f.dur||1} onChange={e=>set("dur",+e.target.value)}/>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={lS}>Notes / Tips</label>
+          <textarea style={{...iS,height:66,resize:"vertical"}} value={f.notes||""}
+            onChange={e=>set("notes",e.target.value)} placeholder="Brands, tips, considerations\u2026"/>
+        </div>
+
+        <div style={{background:"#1a1710",borderRadius:5,padding:"8px 11px",marginBottom:14,
+          fontSize:11,color:"#908070",lineHeight:1.8}}>
+          <span style={{color:TYPES[f.type||"wishlist"].color,fontWeight:700}}>{TYPES[f.type||"wishlist"].label}</span>
+          {" \u00B7 "}{fmt(f.low||0)}\u2013{fmt(f.high||0)}
+          {" \u00B7 "}<span style={{color:"#e8c87a"}}>{m2label(f.startMonth||1)}</span>
+          {f.recur>0?` \u00B7 \u21BA every ${f.recur}mo`:" \u00B7 one-time"}
+          {"  \u2192  "}<span style={{color:"#68D391"}}>{occsArr.length}\u00D7 over 20yr = {fmtN(total20)} total</span>
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+          {!isNew&&(
+            <button onClick={()=>{if(window.confirm("Delete this item?"))onDelete(f.id);}}
+              style={{padding:"7px 14px",borderRadius:5,border:"1px solid #5a2a2a",background:"#2a1a1a",
+              color:"#FC8181",cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Delete</button>
+          )}
+          <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
+            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:5,border:"1px solid #3a3020",
+              background:"transparent",color:"#707060",cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancel</button>
+            <button onClick={()=>onSave({...f,_new:undefined})}
+              style={{padding:"7px 18px",borderRadius:5,border:"1px solid #4a7a20",background:"#233010",
+              color:"#8ad050",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>
+              {isNew?"Add Item":"Save Changes"}</button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<WishList />);
+// ── Gantt ─────────────────────────────────────────────────────────────────────
+function GanttTab({items,onEdit}){
+  const[cw,setCw]=useState(4);
+  const[on,setOn]=useState(()=>new Set(Object.keys(TYPES)));
+  const W=TM*cw;
+
+  const filtered=useMemo(()=>items.filter(i=>on.has(i.type)),[items,on]);
+
+  const rows=useMemo(()=>{
+    const g={};
+    for(const it of filtered)(g[it.cat]||(g[it.cat]=[])).push(it);
+    const rs=[];
+    for(const cat of Object.keys(CATS)){
+      if(!g[cat]?.length)continue;
+      rs.push({k:"cat",cat});
+      g[cat].forEach(item=>rs.push({k:"item",item}));
+    }
+    return rs;
+  },[filtered]);
+
+  const yticks=useMemo(()=>
+    Array.from({length:21},(_,i)=>({x:i*12*cw,yr:SY+i,major:i%5===0})),[cw]);
+
+  const gridBg=`repeating-linear-gradient(90deg,transparent,transparent ${12*cw-1}px,#28240e ${12*cw-1}px,#28240e ${12*cw}px)`;
+  const toggle=k=>setOn(p=>{const n=new Set(p);n.has(k)?n.delete(k):n.add(k);return n;});
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontSize:11,color:"#706050"}}>Zoom:</span>
+        {[{w:4,l:"20yr"},{w:8,l:"10yr"},{w:14,l:"5yr"},{w:28,l:"2yr"}].map(({w,l})=>(
+          <button key={w} onClick={()=>setCw(w)} style={{
+            padding:"3px 9px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:"inherit",fontSize:11,
+            borderColor:cw===w?"#e8c87a":"#3a3020",background:cw===w?"#e8c87a22":"transparent",color:cw===w?"#e8c87a":"#605040"
+          }}>{l}</button>
+        ))}
+        <div style={{width:1,height:14,background:"#3a3020",margin:"0 2px"}}/>
+        {Object.entries(TYPES).map(([k,v])=>(
+          <button key={k} onClick={()=>toggle(k)} style={{
+            padding:"2px 8px",borderRadius:8,border:"1px solid",cursor:"pointer",fontFamily:"inherit",fontSize:10,
+            borderColor:on.has(k)?v.color:"#3a3020",background:on.has(k)?v.color+"1e":"transparent",color:on.has(k)?v.color:"#504030"
+          }}>{v.label}</button>
+        ))}
+      </div>
+
+      <div style={{overflow:"auto",maxHeight:"calc(100vh - 280px)",minHeight:320,
+        border:"1px solid #3a3020",borderRadius:8,background:"#1a1710"}}>
+        <div style={{minWidth:LW+W,width:LW+W}}>
+          <div style={{position:"sticky",top:0,zIndex:10,height:AX_H,
+            display:"flex",background:"#1e1c12",borderBottom:"2px solid #4a3a1a"}}>
+            <div style={{width:LW,flexShrink:0,display:"flex",alignItems:"flex-end",
+              padding:"0 0 6px 10px",borderRight:"1px solid #3a3020"}}>
+              <span style={{fontSize:10,color:"#706050",fontWeight:700}}>
+                {filtered.length} items \u2014 click any row to edit
+              </span>
+            </div>
+            <div style={{flex:1,position:"relative",backgroundImage:gridBg,overflow:"hidden"}}>
+              {yticks.map((t,i)=>(
+                <div key={i} style={{position:"absolute",left:t.x,top:0,bottom:0}}>
+                  <div style={{position:"absolute",left:0,top:0,bottom:0,
+                    width:t.major?1.5:0.5,background:t.major?"#5a4a20":"#2e2a14"}}/>
+                  {cw>=3&&(
+                    <div style={{position:"absolute",bottom:6,left:3,
+                      fontSize:cw>=8?10:8,color:t.major?"#e8c87a":"#706040",
+                      fontWeight:t.major?700:400,fontFamily:"Arial,sans-serif",
+                      whiteSpace:"nowrap",userSelect:"none"}}>
+                      {t.yr}
+                    </div>
+                  )}
+                  {cw>=14&&Array.from({length:11},(_,mi)=>mi+1).map(mi=>(
+                    <div key={mi} style={{position:"absolute",left:mi*cw,top:AX_H-10,bottom:0,
+                      width:0.5,background:"#252010"}}/>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {rows.map((row,ri)=>{
+            if(row.k==="cat"){
+              const cv=CATS[row.cat];
+              return(
+                <div key={ri} style={{display:"flex",height:CAT_H,
+                  background:cv.c+"1e",borderBottom:"1px solid #3a3020",borderTop:"1px solid #3a3020"}}>
+                  <div style={{width:LW,flexShrink:0,padding:"0 8px",
+                    display:"flex",alignItems:"center",gap:6,borderRight:"1px solid #3a3020"}}>
+                    <span style={{fontSize:13}}>{cv.icon}</span>
+                    <span style={{fontSize:10,fontWeight:700,color:cv.c,textTransform:"uppercase",letterSpacing:0.6}}>{cv.label}</span>
+                  </div>
+                  <div style={{flex:1,backgroundImage:gridBg,background:cv.c+"0a"}}/>
+                </div>
+              );
+            }
+            const{item}=row;
+            const col=TYPES[item.type]?.color||"#888";
+            const itemOccs=occs(item);
+            return(
+              <div key={ri}
+                style={{display:"flex",height:ROW_H,cursor:"pointer",
+                  borderBottom:"1px solid #252015",
+                  background:ri%2===0?"transparent":"#1d1b11"}}
+                onClick={()=>onEdit(item)}
+                onMouseEnter={e=>{e.currentTarget.style.background="#2e2a18";}}
+                onMouseLeave={e=>{e.currentTarget.style.background=ri%2===0?"transparent":"#1d1b11";}}>
+                <div style={{width:LW,flexShrink:0,padding:"0 8px",
+                  display:"flex",alignItems:"center",gap:5,
+                  borderRight:"1px solid #252015",overflow:"hidden"}}>
+                  <span style={{width:6,height:6,borderRadius:1,background:col,flexShrink:0}}/>
+                  <span style={{fontSize:10,color:"#c8b890",whiteSpace:"nowrap",
+                    overflow:"hidden",textOverflow:"ellipsis",flex:1}} title={item.name}>{item.name}</span>
+                  {item.recur>0&&<span style={{fontSize:8,color:col,opacity:0.6,flexShrink:0}}>\u21BA</span>}
+                </div>
+                <div style={{flex:1,position:"relative",backgroundImage:gridBg}}>
+                  {itemOccs.map((m,j)=>{
+                    const x=(m-1)*cw;
+                    const bw=Math.max(item.dur*cw,cw,2);
+                    const clamped=Math.min(bw,W-x);
+                    if(clamped<=0)return null;
+                    return(
+                      <div key={j} style={{position:"absolute",left:x,top:4,
+                        width:clamped,height:ROW_H-8,
+                        background:col,opacity:j===0?0.88:0.35,
+                        borderRadius:2,pointerEvents:"none"}}/>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{fontSize:10,color:"#504030",marginTop:5,display:"flex",gap:12,flexWrap:"wrap"}}>
+        <span>Jan {SY} \u2192 Dec {SY+19} \u00B7 Faded bars = recurring instances</span>
+        <span style={{color:"#e8c87a"}}>Year header stays visible while scrolling down</span>
+        <span>Click any item to edit</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Funding ───────────────────────────────────────────────────────────────────
+function FundingTab({items}){
+  const[B,setB]=useState({repair:200,preventive:100,routine:200,replacement:150,wishlist:600,upgrade:150,experience:250});
+
+  const stats=useMemo(()=>{
+    const s={};
+    for(const t of Object.keys(TYPES)){
+      const its=items.filter(i=>i.type===t);
+      const tot=its.reduce((a,i)=>a+cost20(i),0);
+      const soon=its.filter(i=>occs(i).some(m=>m<=12)).sort((a,b)=>a.startMonth-b.startMonth);
+      s[t]={its,tot,soon,perMo:Math.ceil(tot/240)};
+    }
+    return s;
+  },[items]);
+
+  const grand=items.reduce((a,i)=>a+cost20(i),0);
+  const totalB=Object.values(B).reduce((a,b)=>a+b,0);
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(148px,1fr))",gap:10,
+        marginBottom:18,background:"#231f14",border:"1px solid #5a4a2a",borderRadius:8,padding:"13px 16px"}}>
+        {[
+          ["Monthly budget",fmtN(totalB)+"/mo","#e8c87a"],
+          ["20-yr grand total",fmtN(grand),"#e8e0cc"],
+          ["Needed to fully fund",fmtN(Math.ceil(grand/240))+"/mo","#63B3ED"],
+        ].map(([l,v,c])=>(
+          <div key={l}>
+            <div style={{fontSize:10,color:"#605040",marginBottom:1}}>{l}</div>
+            <div style={{fontSize:17,fontWeight:700,color:c,fontFamily:"monospace"}}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      {[{h:"\u2500\u2500 Maintenance (Fund First) \u2500\u2500",ks:["repair","preventive","routine","replacement"]},
+        {h:"\u2500\u2500 Other Goals \u2500\u2500",ks:["wishlist","upgrade","experience"]}].map(({h,ks})=>(
+        <div key={h}>
+          <div style={{fontSize:11,color:"#e8c87a",fontWeight:700,marginBottom:8,letterSpacing:0.4}}>{h}</div>
+          {ks.map(t=>{
+            const tv=TYPES[t],st=stats[t],b=B[t]||0;
+            const pct=st.tot>0?Math.min((b*240)/st.tot*100,100):100;
+            const gap=Math.max(st.tot-(b*240),0);
+            return(
+              <div key={t} style={{background:"#231f14",border:"1px solid #3a3020",borderRadius:8,
+                padding:13,marginBottom:10,borderLeft:`4px solid ${tv.color}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:8}}>
+                  <div>
+                    <span style={{fontWeight:700,fontSize:14,color:tv.color}}>{tv.label}</span>
+                    <span style={{fontSize:11,color:"#605040",marginLeft:8}}>{st.its.length} items</span>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:16,fontWeight:700,color:"#e8c87a",fontFamily:"monospace"}}>{fmtN(st.tot)}</div>
+                    <div style={{fontSize:9,color:"#605040"}}>20-yr estimate</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:st.soon.length?10:0}}>
+                  <span style={{fontSize:11,color:"#a09070",whiteSpace:"nowrap"}}>$/mo </span>
+                  <input type="number" min={0} step={25} value={b}
+                    onChange={e=>setB(p=>({...p,[t]:+e.target.value}))}
+                    style={{width:72,padding:"3px 7px",background:"#2a2418",border:"1px solid #4a3a1a",
+                      borderRadius:4,color:"#e8c87a",fontFamily:"monospace",fontSize:13,outline:"none"}}/>
+                  <div style={{flex:1}}>
+                    <div style={{height:8,background:"#3a3020",borderRadius:5,overflow:"hidden"}}>
+                      <div style={{width:`${pct}%`,height:"100%",borderRadius:5,
+                        background:pct>=100?"#68D391":pct>=50?tv.color:"#FC8181",transition:"width 0.3s"}}/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
+                      <span style={{fontSize:10,color:pct>=100?"#68D391":"#807060"}}>{pct.toFixed(0)}% funded</span>
+                      {gap>0&&<span style={{fontSize:10,color:"#FC8181"}}>gap {fmtN(gap)}</span>}
+                    </div>
+                  </div>
+                </div>
+                {st.soon.length>0&&(
+                  <div style={{borderTop:"1px solid #252015",paddingTop:7}}>
+                    <div style={{fontSize:10,color:"#605040",marginBottom:4}}>Due in next 12 months:</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                      {st.soon.slice(0,7).map(it=>(
+                        <span key={it.id} style={{fontSize:10,padding:"2px 7px",borderRadius:8,
+                          background:tv.color+"1e",color:tv.color,border:`1px solid ${tv.color}44`}}>
+                          {it.name} \u00B7 {m2label(it.startMonth)} \u00B7 {fmtN(midOf(it))}
+                        </span>
+                      ))}
+                      {st.soon.length>7&&<span style={{fontSize:10,color:"#605040"}}>+{st.soon.length-7} more</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── List Tab ─────────────────────────────────────────────────────────────────
+function ListTab({items,onEdit,onNew}){
+  const[q,setQ]=useState("");
+  const[ft,setFt]=useState("all");
+  const[fc,setFc]=useState("all");
+  const[sort,setSort]=useState("start");
+
+  const shown=useMemo(()=>items
+    .filter(i=>(ft==="all"||i.type===ft)&&(fc==="all"||i.cat===fc)&&
+      (!q||i.name.toLowerCase().includes(q.toLowerCase())||i.notes.toLowerCase().includes(q.toLowerCase())))
+    .sort((a,b)=>sort==="start"?a.startMonth-b.startMonth:sort==="costH"?b.high-a.high:sort==="costL"?a.low-b.low:a.name.localeCompare(b.name))
+  ,[items,q,ft,fc,sort]);
+
+  const selS={padding:"5px 9px",background:"#2a2418",border:"1px solid #4a3a1a",borderRadius:5,
+    color:"#e8e0cc",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer",outline:"none"};
+
+  const catCounts=useMemo(()=>{
+    const c={};
+    items.forEach(i=>{c[i.cat]=(c[i.cat]||0)+1;});
+    return c;
+  },[items]);
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:12,alignItems:"center"}}>
+        <input placeholder="\uD83D\uDD0D Search\u2026" value={q} onChange={e=>setQ(e.target.value)}
+          style={{...selS,width:170,fontSize:12}}/>
+        <select style={selS} value={ft} onChange={e=>setFt(e.target.value)}>
+          <option value="all">All Types</option>
+          {Object.entries(TYPES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select style={selS} value={fc} onChange={e=>setFc(e.target.value)}>
+          <option value="all">All Categories</option>
+          {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+        </select>
+        <select style={selS} value={sort} onChange={e=>setSort(e.target.value)}>
+          <option value="start">Sort: Date</option>
+          <option value="name">Sort: Name</option>
+          <option value="costH">Sort: Cost \u2193</option>
+          <option value="costL">Sort: Cost \u2191</option>
+        </select>
+        <span style={{fontSize:11,color:"#605040"}}>{shown.length} of {items.length}</span>
+        <button onClick={onNew} style={{marginLeft:"auto",padding:"5px 13px",borderRadius:5,
+          border:"1px solid #7a5a1a",background:"#3a2a10",color:"#e8c87a",
+          cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}}>+ Add Item</button>
+      </div>
+
+      {/* Category pills */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        <button onClick={()=>setFc("all")} style={{padding:"3px 12px",borderRadius:20,border:"1px solid",
+          borderColor:fc==="all"?"#e8c87a":"#4a3a1a",background:fc==="all"?"#e8c87a22":"transparent",
+          color:fc==="all"?"#e8c87a":"#706050",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+          All ({items.length})</button>
+        {Object.entries(CATS).map(([k,v])=>catCounts[k]?(
+          <button key={k} onClick={()=>setFc(fc===k?"all":k)} style={{padding:"3px 12px",borderRadius:20,border:"1px solid",
+            borderColor:fc===k?v.c:"#4a3a1a",background:fc===k?v.c+"22":"transparent",
+            color:fc===k?v.c:"#706050",fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+            {v.icon} {v.label} ({catCounts[k]})</button>
+        ):null)}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(258px,1fr))",gap:8}}>
+        {shown.map(item=>{
+          const tv=TYPES[item.type]||TYPES.wishlist;
+          const cv=CATS[item.cat]||CATS.vehicle;
+          return(
+            <div key={item.id}
+              style={{background:"#231f14",border:"1px solid #3a3020",borderRadius:6,
+                padding:"10px 12px",borderLeft:`3px solid ${tv.color}`,cursor:"pointer"}}
+              onClick={()=>onEdit(item)}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="#5a4a2a"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="#3a3020"}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:5}}>
+                <div style={{fontWeight:700,fontSize:12,color:"#e8e0cc",lineHeight:1.3}}>{item.name}</div>
+                <div style={{fontSize:11,color:"#e8c87a",fontFamily:"monospace",whiteSpace:"nowrap"}}>{fmt(item.low)}\u2013{fmt(item.high)}</div>
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:item.notes?4:0}}>
+                <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:cv.c+"2a",color:cv.c}}>{cv.icon} {cv.label}</span>
+                <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:tv.color+"1e",color:tv.color,border:`1px solid ${tv.color}33`}}>{tv.label}</span>
+                <span style={{fontSize:9,padding:"1px 6px",borderRadius:7,background:"#3a3020",color:"#908070"}}>
+                  {m2label(item.startMonth)}{item.recur?` \u21BA${item.recur}mo`:""}
+                </span>
+              </div>
+              {item.notes&&<div style={{fontSize:10,color:"#565040",lineHeight:1.4,marginTop:2}}>{item.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Summary Tab ───────────────────────────────────────────────────────────────
+function SummaryTab({items}){
+  const totalLow=items.reduce((s,i)=>s+i.low,0);
+  const totalHigh=items.reduce((s,i)=>s+i.high,0);
+  const total20=items.reduce((a,i)=>a+cost20(i),0);
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14,marginBottom:28}}>
+        {Object.entries(CATS).map(([k,v])=>{
+          const its=items.filter(i=>i.cat===k);
+          if(!its.length)return null;
+          const low=its.reduce((s,i)=>s+i.low,0);
+          const high=its.reduce((s,i)=>s+i.high,0);
+          const t20=its.reduce((a,i)=>a+cost20(i),0);
+          return(
+            <div key={k} style={{background:"#231f14",border:`1px solid ${v.c}33`,
+              borderRadius:8,padding:"14px 16px",borderTop:`3px solid ${v.c}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                <div style={{color:v.c,fontWeight:700,fontSize:13}}>{v.icon} {v.label}</div>
+                <div style={{color:"#706050",fontSize:11}}>{its.length} items</div>
+              </div>
+              <div style={{color:"#e8c87a",fontSize:16,fontWeight:700,fontFamily:"monospace",marginBottom:3}}>
+                ${low.toLocaleString()} \u2013 ${high.toLocaleString()}
+              </div>
+              <div style={{fontSize:10,color:"#605040"}}>20yr est: <span style={{color:"#68D391"}}>${t20.toLocaleString()}</span></div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Type breakdown */}
+      <div style={{background:"#231f14",border:"1px solid #5a4a2a",borderRadius:8,padding:"14px 16px",marginBottom:20}}>
+        <div style={{fontSize:12,color:"#a09070",fontWeight:700,marginBottom:12}}>By Type</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+          {Object.entries(TYPES).map(([k,v])=>{
+            const its=items.filter(i=>i.type===k);
+            if(!its.length)return null;
+            const t20=its.reduce((a,i)=>a+cost20(i),0);
+            return(
+              <div key={k} style={{borderLeft:`3px solid ${v.color}`,paddingLeft:8}}>
+                <div style={{color:v.color,fontSize:12,fontWeight:700}}>{v.label}</div>
+                <div style={{color:"#605040",fontSize:10}}>{its.length} items</div>
+                <div style={{color:"#e8c87a",fontSize:13,fontFamily:"monospace"}}>${t20.toLocaleString()}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{background:"#2a2418",borderRadius:10,padding:"18px 22px",border:"2px solid #5a4a2a"}}>
+        <div style={{fontSize:12,color:"#a09070",marginBottom:6}}>Total One-Time Estimated Range</div>
+        <div style={{fontSize:28,fontWeight:700,color:"#e8c87a",fontFamily:"monospace",marginBottom:4}}>
+          ${totalLow.toLocaleString()} \u2013 ${totalHigh.toLocaleString()}
+        </div>
+        <div style={{fontSize:12,color:"#a09070",marginBottom:4}}>20-Year Total (including recurring)</div>
+        <div style={{fontSize:22,fontWeight:700,color:"#68D391",fontFamily:"monospace",marginBottom:8}}>
+          ${total20.toLocaleString()}
+        </div>
+        <div style={{fontSize:11,color:"#605040"}}>
+          Across {items.length} items \u00B7 Estimates are ranges; actual costs vary by vendor, region, and scope.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Suggestions Tab ───────────────────────────────────────────────────────────
+function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}){
+  const pending=suggestions.filter(s=>!approvedIds.includes(s.id)&&!rejectedIds.includes(s.id));
+  const approved=suggestions.filter(s=>approvedIds.includes(s.id));
+  const rejected=suggestions.filter(s=>rejectedIds.includes(s.id));
+
+  return(
+    <div>
+      <div style={{marginBottom:16,padding:"12px 16px",background:"#2a2418",borderRadius:8,border:"1px solid #4a3a1a"}}>
+        <p style={{margin:0,color:"#a09070",fontSize:12}}>
+          These items fit themes already in your list. Approve to add to your master list, or reject to dismiss.
+          {approved.length>0&&` \u00B7 \u2705 ${approved.length} approved`}
+          {rejected.length>0&&` \u00B7 \u274C ${rejected.length} rejected`}
+          {pending.length===0&&" \u00B7 All reviewed!"}
+        </p>
+      </div>
+
+      {pending.length===0&&(
+        <div style={{textAlign:"center",color:"#706050",padding:50,fontSize:14}}>
+          All suggestions reviewed! \u2713{approved.length>0&&` ${approved.length} item(s) added to your list.`}
+        </div>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:12}}>
+        {pending.map(item=>{
+          const tv=TYPES[item.type]||TYPES.wishlist;
+          const cv=CATS[item.cat]||CATS.vehicle;
+          return(
+            <div key={item.id} style={{background:"#231f14",border:"1px solid #3a3020",
+              borderRadius:8,padding:"14px 16px",borderLeft:`3px solid ${cv.c}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#e8e0cc",lineHeight:1.3}}>{item.name}</div>
+                <div style={{fontSize:12,fontWeight:700,color:"#e8c87a",whiteSpace:"nowrap",fontFamily:"monospace"}}>
+                  {fmt(item.low)}\u2013{fmt(item.high)}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:9,padding:"2px 7px",borderRadius:8,background:cv.c+"22",color:cv.c,border:`1px solid ${cv.c}44`}}>{cv.icon} {cv.label}</span>
+                <span style={{fontSize:9,padding:"2px 7px",borderRadius:8,background:tv.color+"22",color:tv.color,border:`1px solid ${tv.color}44`}}>{tv.label}</span>
+                <span style={{fontSize:9,padding:"2px 7px",borderRadius:8,background:"#3a3020",color:"#908070"}}>{m2label(item.startMonth)}</span>
+              </div>
+              {item.notes&&<div style={{fontSize:11,color:"#807060",marginBottom:12,lineHeight:1.5}}>{item.notes}</div>}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>onApprove(item)} style={{flex:1,padding:"7px 0",borderRadius:6,
+                  border:"1px solid #4a7a3a",background:"#1a3a1a",color:"#7ae87a",
+                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>\u2713 Add to List</button>
+                <button onClick={()=>onReject(item.id)} style={{flex:1,padding:"7px 0",borderRadius:6,
+                  border:"1px solid #5a2a2a",background:"#2a1a1a",color:"#e87a7a",
+                  cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>\u2715 Not Interested</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {approved.length>0&&(
+        <div style={{marginTop:24}}>
+          <div style={{fontSize:11,color:"#68D391",fontWeight:700,marginBottom:8}}>\u2705 Approved & Added to List</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {approved.map(s=>(
+              <span key={s.id} style={{fontSize:11,padding:"3px 10px",borderRadius:20,
+                background:"#1a3a1a",color:"#68D391",border:"1px solid #2a5a2a"}}>{s.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App(){
+  const[items,setItems]=useState(ITEMS_INIT);
+  const[suggestions]=useState(SUGG_INIT);
+  const[approvedIds,setApprovedIds]=useState([]);
+  const[rejectedIds,setRejectedIds]=useState([]);
+  const[editItem,setEditItem]=useState(null);
+  const[tab,setTab]=useState("list");
+  const[msg,setMsg]=useState("");
+  const fileRef=useRef();
+
+  const pendingCount=suggestions.filter(s=>!approvedIds.includes(s.id)&&!rejectedIds.includes(s.id)).length;
+
+  const msgTimer=useRef(null);
+  const showMsg=(m,color="#68D391")=>{
+    if(msgTimer.current)clearTimeout(msgTimer.current);
+    setMsg({t:m,c:color});
+    msgTimer.current=setTimeout(()=>setMsg(""),4500);
+  };
+
+  function openEdit(item){setEditItem({...item});}
+  const uid=()=>crypto.randomUUID?crypto.randomUUID():(Date.now()*1000+Math.floor(Math.random()*1e9));
+  function openNew(){setEditItem({_new:true,id:uid(),name:"",cat:"vehicle",type:"wishlist",low:0,high:0,startMonth:1,recur:0,dur:1,notes:""});}
+
+  function saveEdit(updated){
+    if(updated._new!==undefined){
+      const{_new,...item}=updated;
+      setItems(p=>[...p,{...item,id:uid()}]);
+      showMsg("\u2713 Item added");
+    } else {
+      setItems(p=>p.map(i=>i.id===updated.id?updated:i));
+      showMsg("\u2713 Changes saved");
+    }
+    setEditItem(null);
+  }
+  function deleteItem(id){setItems(p=>p.filter(i=>i.id!==id));setEditItem(null);showMsg("Item deleted","#FC8181");}
+
+  function handleApprove(suggItem){
+    const newItem={...suggItem,id:uid()};
+    setItems(p=>[...p,newItem]);
+    setApprovedIds(p=>[...p,suggItem.id]);
+    showMsg(`\u2713 "${suggItem.name}" added to list`);
+  }
+  function handleReject(id){
+    setRejectedIds(p=>[...p,id]);
+  }
+
+  function handleFile(e){
+    const file=e.target.files[0];if(!file)return;
+    parseXLSX(file,imported=>{setItems(imported);showMsg(`\u2713 Loaded ${imported.length} items from "${file.name}"`);});
+    e.target.value="";
+  }
+
+  const btnS=(col,bg,bc)=>({padding:"7px 13px",borderRadius:5,border:`1px solid ${bc}`,
+    background:bg,color:col,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700});
+
+  const TABS=[
+    ["list","\uD83D\uDCCB List"],
+    ["suggestions",`\uD83D\uDCA1 Suggestions${pendingCount>0?` (${pendingCount})`:""}`,],
+    ["summary","\uD83D\uDCCA Summary"],
+    ["gantt","\uD83D\uDCC8 Gantt (20yr)"],
+    ["funding","\uD83D\uDCB0 Funding"],
+  ];
+
+  return(
+    <div style={{background:"#1a1710",minHeight:"100vh",color:"#e8e0cc",fontFamily:"Georgia,serif",padding:"16px 20px",boxSizing:"border-box"}}>
+      {editItem&&<EditModal item={editItem} onSave={saveEdit} onDelete={deleteItem} onClose={()=>setEditItem(null)}/>}
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10,marginBottom:12}}>
+        <div>
+          <h1 style={{margin:0,fontSize:20,fontWeight:700,color:"#e8c87a",letterSpacing:0.5}}>\uD83D\uDCCB Wish List Planner</h1>
+          <p style={{margin:"2px 0 0",color:"#605040",fontSize:11}}>{items.length} items \u00B7 Jan {SY}\u2013Dec {SY+19}</p>
+        </div>
+        <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
+          {msg&&<span style={{fontSize:11,color:msg.c,fontStyle:"italic"}}>{msg.t}</span>}
+          <button onClick={()=>fileRef.current.click()} style={btnS("#68D391","#1a3018","#3a6030")}>\u2191 Import Excel</button>
+          <button onClick={()=>{exportXLSX(items);showMsg(`\u2193 Exported ${items.length} items`,"#63B3ED");}} style={btnS("#63B3ED","#101828","#203860")}>\u2193 Export Excel</button>
+          <button onClick={openNew} style={btnS("#e8c87a","#2a1e08","#6a500a")}>+ Add Item</button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{display:"none"}}/>
+        </div>
+      </div>
+
+      {/* Type legend */}
+      <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
+        {Object.entries(TYPES).map(([k,v])=>(
+          <span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,
+            padding:"2px 8px",borderRadius:8,background:v.color+"16",
+            border:`1px solid ${v.color}38`,color:v.color}}>
+            <span style={{width:7,height:7,borderRadius:1,background:v.color,display:"inline-block"}}/>
+            {v.label}
+            {v.group==="m"&&<span style={{fontSize:8,opacity:0.6}}>\u2605</span>}
+          </span>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {TABS.map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            padding:"6px 14px",borderRadius:5,border:"1px solid",cursor:"pointer",
+            borderColor:tab===t?"#e8c87a":"#4a3a1a",background:tab===t?"#e8c87a22":"transparent",
+            color:tab===t?"#e8c87a":"#706050",fontFamily:"inherit",fontSize:12,fontWeight:600
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="list"&&<ListTab items={items} onEdit={openEdit} onNew={openNew}/>}
+      {tab==="suggestions"&&<SuggestionsTab suggestions={suggestions} approvedIds={approvedIds} rejectedIds={rejectedIds} onApprove={handleApprove} onReject={handleReject}/>}
+      {tab==="summary"&&<SummaryTab items={items}/>}
+      {tab==="gantt"&&<GanttTab items={items} onEdit={openEdit}/>}
+      {tab==="funding"&&<FundingTab items={items}/>}
+    </div>
+  );
+}
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
     </script>
   </body>
 </html>
