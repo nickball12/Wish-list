@@ -1,0 +1,462 @@
+import { useState, useMemo } from "react";
+
+const CATEGORIES = {
+  vehicle: { label: "Vehicles & Transport", icon: "🚗", color: "#e07b39" },
+  home_interior: { label: "Home Interior", icon: "🛋️", color: "#7b9e6b" },
+  home_exterior: { label: "Home Exterior", icon: "🏡", color: "#6b8ab5" },
+  home_systems: { label: "Home Systems", icon: "⚡", color: "#c4a035" },
+  garage: { label: "Garage & Workshop", icon: "🔧", color: "#8b6b9e" },
+  tech: { label: "Tech & Electronics", icon: "💻", color: "#4a9e8a" },
+  outdoor: { label: "Outdoor & Recreation", icon: "🌲", color: "#5a9e5a" },
+  travel: { label: "Travel & Experiences", icon: "✈️", color: "#9e5a7b" },
+  trailer: { label: "Trailer", icon: "🚐", color: "#9e7a4a" },
+  wyoming: { label: "Wyoming Ranch", icon: "🏔️", color: "#7a6b55" },
+  hobbies: { label: "Hobbies & Personal", icon: "🎯", color: "#6b7a9e" },
+  safety: { label: "Safety & Emergency", icon: "🛡️", color: "#9e4a4a" },
+  property: { label: "Property", icon: "🏘️", color: "#4a7a9e" },
+};
+
+const TYPES = {
+  wishlist: { label: "Wish List", color: "#5a8fc4" },
+  maintenance: { label: "Recurring / Maintenance", color: "#e07b39" },
+  upgrade: { label: "Upgrade", color: "#7b9e6b" },
+  experience: { label: "Experience", color: "#9e5a7b" },
+};
+
+const ALL_ITEMS = [
+  // VEHICLES
+  { id: 1, name: "Truck Transmission Rebuild", cat: "vehicle", type: "maintenance", low: 1500, high: 4000, notes: "Full rebuild depending on damage; seek shop quotes" },
+  { id: 2, name: "Truck AFM Delete / Maintenance", cat: "vehicle", type: "maintenance", low: 500, high: 1500, notes: "Prevents cylinder deactivation issues; kit + labor" },
+  { id: 3, name: "Truck Front Shocks", cat: "vehicle", type: "maintenance", low: 300, high: 800, notes: "Bilstein or Fox recommended; DIY saves labor" },
+  { id: 4, name: "Truck Rear Airbag Shocks", cat: "vehicle", type: "upgrade", low: 600, high: 1500, notes: "Firestone or Air Lift kits popular" },
+  { id: 5, name: "Truck Bed Liner", cat: "vehicle", type: "upgrade", low: 400, high: 1200, notes: "Spray-in (Line-X/Rhino) vs drop-in; spray-in lasts longer" },
+  { id: 6, name: "Mazda Maintenance Tune-Up", cat: "vehicle", type: "maintenance", low: 200, high: 600, notes: "Spark plugs, filters, fluids — varies by model/mileage" },
+  { id: 7, name: "Side-by-Side or Golf Cart", cat: "vehicle", type: "wishlist", low: 8000, high: 22000, notes: "Polaris Ranger or Can-Am Defender; gas or EV golf cart cheaper" },
+  { id: 8, name: "Car Jump Starter Packs", cat: "vehicle", type: "wishlist", low: 50, high: 200, notes: "Noco Boost Pro or similar; get 2-3 for ranch/home/trailer" },
+  { id: 9, name: "Dash Cams", cat: "vehicle", type: "wishlist", low: 100, high: 350, notes: "Blackvue or Viofo; front+rear per vehicle" },
+  { id: 10, name: "New Bikes", cat: "vehicle", type: "wishlist", low: 300, high: 2000, notes: "Per bike; mountain vs casual vs e-bike varies widely" },
+
+  // HOME EXTERIOR
+  { id: 11, name: "New Siding (Replace Wood)", cat: "home_exterior", type: "maintenance", low: 8000, high: 22000, notes: "LP SmartSide or HardiePlank; labor is bulk of cost" },
+  { id: 12, name: "Real Hot Tub + Deck", cat: "home_exterior", type: "wishlist", low: 6000, high: 18000, notes: "Hot tub $4-12k + deck build $2-8k depending on size" },
+  { id: 13, name: "2nd Toilet Room Addition", cat: "home_exterior", type: "wishlist", low: 5000, high: 15000, notes: "Rough-in plumbing + framing; full bath addition much more" },
+  { id: 14, name: "Carport", cat: "home_exterior", type: "wishlist", low: 2500, high: 8000, notes: "Steel kit carport vs custom wood structure" },
+  { id: 15, name: "Chicken Coop / Pen", cat: "home_exterior", type: "wishlist", low: 500, high: 2500, notes: "DIY build vs pre-made; size depends on flock" },
+  { id: 16, name: "Garden Area Freshen Up", cat: "home_exterior", type: "maintenance", low: 500, high: 3000, notes: "Raised beds, soil, edging, mulch" },
+  { id: 17, name: "Front Garden Area Fresh Up", cat: "home_exterior", type: "maintenance", low: 800, high: 3000, notes: "Curb appeal — plants, mulch, pavers" },
+  { id: 18, name: "Fix Drainage / French Drain System", cat: "home_exterior", type: "maintenance", low: 1500, high: 6000, notes: "Both west corners; French drain + grading" },
+  { id: 19, name: "Remove Walkway Pillars", cat: "home_exterior", type: "wishlist", low: 300, high: 1500, notes: "Depends if structural; may need mason" },
+  { id: 20, name: "Trees, Plants & Shrubs", cat: "home_exterior", type: "wishlist", low: 500, high: 3000, notes: "Varies wildly by species/maturity; native plants save water" },
+  { id: 21, name: "Jelly-Style Lights", cat: "home_exterior", type: "wishlist", low: 200, high: 700, notes: "Smart addressable LED permanent install (Jellyfish, Govee Permanent)" },
+
+  // HOME INTERIOR
+  { id: 22, name: "Bathroom Tub & Shower Remodel", cat: "home_interior", type: "wishlist", low: 3000, high: 15000, notes: "Full gut vs refinish; tile work + fixtures add cost" },
+  { id: 23, name: "New Washing Machine", cat: "home_interior", type: "maintenance", low: 600, high: 1500, notes: "Front-load LG/Samsung; consider steam option" },
+  { id: 24, name: "New Dryer", cat: "home_interior", type: "maintenance", low: 500, high: 1200, notes: "Match brand to washer; gas vs electric" },
+  { id: 25, name: "Ice Machine", cat: "home_interior", type: "wishlist", low: 500, high: 3000, notes: "Undercounter nugget ice machines are popular (GE Opal)" },
+  { id: 26, name: "New Couch", cat: "home_interior", type: "wishlist", low: 1000, high: 4000, notes: "Move old one to gameroom or library as noted" },
+  { id: 27, name: "New TV — Main Area", cat: "home_interior", type: "upgrade", low: 500, high: 2500, notes: "75-85\" QLED or OLED; LG/Samsung top tier" },
+  { id: 28, name: "New TV — Master Bedroom", cat: "home_interior", type: "upgrade", low: 400, high: 1500, notes: "55-65\" is typical bedroom size" },
+  { id: 29, name: "New TV — Gameroom (or Projector)", cat: "home_interior", type: "upgrade", low: 400, high: 2500, notes: "Short-throw projector like BenQ TK700 is great option" },
+  { id: 30, name: "New Mattress — Calvin", cat: "home_interior", type: "wishlist", low: 500, high: 2000, notes: "Purple, Saatva, or Tempur-Pedic for longevity" },
+  { id: 31, name: "New Mattress — Amelia", cat: "home_interior", type: "wishlist", low: 500, high: 2000, notes: "Same — consider adjustable bases" },
+  { id: 32, name: "Kids Bedframes", cat: "home_interior", type: "wishlist", low: 200, high: 800, notes: "Per frame; loft/bunk options save floor space" },
+  { id: 33, name: "Bookshelves", cat: "home_interior", type: "wishlist", low: 200, high: 1000, notes: "Built-in vs freestanding; Billy + Oxberg is solid budget" },
+  { id: 34, name: "New Desks", cat: "home_interior", type: "wishlist", low: 300, high: 1500, notes: "Standing desk option worth considering (Flexispot/Uplift)" },
+  { id: 35, name: "Pool Table", cat: "home_interior", type: "wishlist", low: 1500, high: 5000, notes: "8ft is standard; Olhausen or Brunswick for quality" },
+  { id: 36, name: "Game Table (DnD/Poker)", cat: "home_interior", type: "wishlist", low: 500, high: 3000, notes: "Gametables.com or custom build; combo tables available" },
+  { id: 37, name: "New Stair Carpet", cat: "home_interior", type: "maintenance", low: 800, high: 2500, notes: "Runner vs full stair; nylon holds up best" },
+  { id: 38, name: "Popcorn Maker", cat: "home_interior", type: "wishlist", low: 50, high: 300, notes: "Whirley Pop stovetop or commercial-style machine" },
+  { id: 39, name: "New Computer Monitor — Ultrawide", cat: "tech", type: "wishlist", low: 400, high: 1200, notes: "34\" curved ultrawide; LG or Samsung" },
+
+  // HOME SYSTEMS
+  { id: 40, name: "Home Camera System", cat: "home_systems", type: "wishlist", low: 300, high: 2500, notes: "Local NVR preferred; Amcrest or Reolink with NAS" },
+  { id: 41, name: "Consolidate AC Units", cat: "home_systems", type: "upgrade", low: 3000, high: 12000, notes: "Mini-split system can replace window units efficiently" },
+  { id: 42, name: "Whole Home Air Filter", cat: "home_systems", type: "upgrade", low: 500, high: 2500, notes: "HEPA whole-home unit or upgraded MERV-13 HVAC filter system" },
+  { id: 43, name: "HVAC / Air System for Under Garage", cat: "home_systems", type: "wishlist", low: 1500, high: 6000, notes: "Mini-split with heat pump covers heating + cooling" },
+  { id: 44, name: "Solar Farm (Panels)", cat: "home_systems", type: "wishlist", low: 15000, high: 40000, notes: "Sized for home + EV; check federal tax credit (30%)" },
+  { id: 45, name: "Solar Farm Batteries", cat: "home_systems", type: "wishlist", low: 10000, high: 30000, notes: "Tesla Powerwall or Enphase; pair with solar for ROI" },
+  { id: 46, name: "RO Filter Upgrade / Additional", cat: "home_systems", type: "upgrade", low: 200, high: 800, notes: "Under-sink or whole-home RO; tankless options now available" },
+  { id: 47, name: "Water Storage System", cat: "home_systems", type: "safety", low: 500, high: 3000, notes: "250-500 gal poly tank + pump; critical for emergencies" },
+  { id: 48, name: "Seal Basement Walls/Corners (Foam)", cat: "home_systems", type: "maintenance", low: 400, high: 2000, notes: "Spray foam or hydraulic cement for bugs, mice, radon" },
+  { id: 49, name: "Smart Home Gear (Local Only)", cat: "home_systems", type: "wishlist", low: 500, high: 2500, notes: "Home Assistant + Zigbee/Z-Wave; no cloud dependency" },
+  { id: 50, name: "Septic Tank Cleaning", cat: "home_systems", type: "maintenance", low: 300, high: 600, notes: "Every 3-5 years; schedule with inspection" },
+
+  // GARAGE & WORKSHOP
+  { id: 51, name: "New Impact Screw Gun", cat: "garage", type: "wishlist", low: 150, high: 350, notes: "Milwaukee M18 or DeWalt 20V are top picks" },
+  { id: 52, name: "New Impact/Torque Driver", cat: "garage", type: "wishlist", low: 150, high: 400, notes: "High-torque version for automotive work" },
+  { id: 53, name: "More Tools (General)", cat: "garage", type: "wishlist", low: 500, high: 3000, notes: "Running budget; Milwaukee/DeWalt ecosystem recommended" },
+  { id: 54, name: "Tool Chest", cat: "garage", type: "wishlist", low: 400, high: 3000, notes: "Snap-on is top tier; Craftsman/Husky for value" },
+  { id: 55, name: "Mini CNC Mill", cat: "garage", type: "wishlist", low: 500, high: 3500, notes: "Shapeoko or Onefinity for wood/aluminum work" },
+  { id: 56, name: "Upgraded 3D Printer with AMS/CFS", cat: "garage", type: "upgrade", low: 800, high: 2500, notes: "Bambu Lab X1C + AMS is the current gold standard" },
+  { id: 57, name: "Garage & Basement Storage Upgrade", cat: "garage", type: "wishlist", low: 500, high: 3000, notes: "Gladiator or Fleximounts wall shelving + overhead" },
+  { id: 58, name: "Garage Car Lift", cat: "garage", type: "wishlist", low: 3000, high: 8000, notes: "2-post lift needs 10ft+ ceiling; BendPak or Dannmar" },
+  { id: 59, name: "EM Garage / Workshop Building", cat: "garage", type: "wishlist", low: 20000, high: 60000, notes: "Detached shop; size + foundation type drives cost" },
+  { id: 60, name: "Ham Radio (License First)", cat: "hobbies", type: "wishlist", low: 100, high: 1200, notes: "Technician license is free to take; HF rig costs more" },
+
+  // TECH
+  { id: 61, name: "Nintendo Switch 2", cat: "tech", type: "wishlist", low: 400, high: 500, notes: "Expected 2025 launch; bundle with games" },
+  { id: 62, name: "Calvin New Phone", cat: "tech", type: "maintenance", low: 500, high: 1200, notes: "Every 3-4 years per your note" },
+  { id: 63, name: "Amelia New Phone", cat: "tech", type: "maintenance", low: 500, high: 1200, notes: "Every 3-4 years per your note" },
+  { id: 64, name: "Calvin Laptop", cat: "tech", type: "wishlist", low: 800, high: 2000, notes: "Depends on use case; gaming vs productivity" },
+  { id: 65, name: "Amelia Laptop", cat: "tech", type: "wishlist", low: 800, high: 2000, notes: "Same" },
+  { id: 66, name: "New Computer Hardware (Homelab + Periodic)", cat: "tech", type: "maintenance", low: 1000, high: 5000, notes: "~5yr refresh cycle; separate homelab server vs gaming" },
+  { id: 67, name: "Steam Deck or Phone Controller", cat: "tech", type: "wishlist", low: 200, high: 500, notes: "Steam Deck OLED is excellent; Backbone for phone" },
+  { id: 68, name: "Smarter Robot Vacuum", cat: "tech", type: "upgrade", low: 300, high: 900, notes: "Roborock S8 or Dreame L20 Ultra; auto-empty dock worth it" },
+  { id: 69, name: "Vacuum + Mop Combo", cat: "tech", type: "wishlist", low: 200, high: 700, notes: "Can combine with robot vac above (Dreame or Roborock)" },
+  { id: 70, name: "Headphones / Earbuds", cat: "tech", type: "wishlist", low: 100, high: 500, notes: "Sony WH-1000XM5 or AirPods Pro for ANC" },
+  { id: 71, name: "Actually Good Drone", cat: "tech", type: "wishlist", low: 500, high: 2500, notes: "DJI Mini 4 Pro (no license under 250g) or DJI Air 3" },
+
+  // OUTDOOR & RECREATION
+  { id: 72, name: "BBQ Grill", cat: "outdoor", type: "wishlist", low: 300, high: 1800, notes: "Weber or Traeger; pellet grill is very popular for set-and-forget" },
+  { id: 73, name: "New Hibachi Grill", cat: "outdoor", type: "wishlist", low: 80, high: 400, notes: "Lodge cast iron or tabletop charcoal hibachi" },
+  { id: 74, name: "Tractor", cat: "outdoor", type: "wishlist", low: 15000, high: 45000, notes: "Kubota BX or L-series; size depends on acreage" },
+  { id: 75, name: "Towable Aerator", cat: "outdoor", type: "wishlist", low: 400, high: 1500, notes: "For tractor or ATV; plug aerator beats spike" },
+  { id: 76, name: "Towable Power Rake", cat: "outdoor", type: "wishlist", low: 700, high: 2500, notes: "Dethatch + grade; PTO or pull-behind" },
+  { id: 77, name: "Plow (Tractor/Mower/SxS)", cat: "outdoor", type: "wishlist", low: 500, high: 2500, notes: "Blade vs V-plow; check compatibility with existing equipment" },
+  { id: 78, name: "Towable Dump Trailer / Wheelbarrow", cat: "outdoor", type: "wishlist", low: 800, high: 3000, notes: "ATV dump trailer is very useful for ranch/yard work" },
+  { id: 79, name: "Towable Mower", cat: "outdoor", type: "wishlist", low: 1500, high: 6000, notes: "Finish mower vs rough cut depends on terrain" },
+  { id: 80, name: "Paddle Board / Bumper Boats", cat: "outdoor", type: "wishlist", low: 400, high: 2000, notes: "Inflatable SUP boards are packable and durable" },
+  { id: 81, name: "Rowing Machine", cat: "outdoor", type: "wishlist", low: 300, high: 1800, notes: "Concept2 RowErg is the gold standard ($900)" },
+  { id: 82, name: "Camping Chairs", cat: "outdoor", type: "wishlist", low: 50, high: 300, notes: "HELINOX or GCI for quality; get 4-6" },
+  { id: 83, name: "Wok Stove / High-BTU Burner", cat: "outdoor", type: "wishlist", low: 150, high: 600, notes: "Outdoor only; Bayou Classic or Eastman Outdoors" },
+  { id: 84, name: "Sauna and/or Steam Room", cat: "outdoor", type: "wishlist", low: 3000, high: 20000, notes: "Barrel sauna DIY kit ~$3-5k; indoor steam room more" },
+  { id: 85, name: "Snowboarding Passes", cat: "outdoor", type: "experience", low: 500, high: 2000, notes: "Epic or Ikon pass covers most major resorts" },
+  { id: 86, name: "Farm Animals", cat: "outdoor", type: "wishlist", low: 500, high: 5000, notes: "Chickens cheapest to start; goats/pigs more involved" },
+  { id: 87, name: "Luggage Set", cat: "travel", type: "wishlist", low: 200, high: 900, notes: "Away or Monos; hardside 4-piece set covers all trips" },
+
+  // TRAVEL
+  { id: 88, name: "Trip to Holland", cat: "travel", type: "experience", low: 3000, high: 9000, notes: "Per couple; tulip season (April) peak pricing" },
+  { id: 89, name: "Trip to UK / Ireland / Europe", cat: "travel", type: "experience", low: 5000, high: 16000, notes: "2 weeks; Ireland is especially doable as a road trip" },
+  { id: 90, name: "Mom & Dad — Hawaii", cat: "travel", type: "experience", low: 3000, high: 9000, notes: "Maui or Kauai most scenic; book flights early" },
+  { id: 91, name: "RV Trip — Pacific Northwest", cat: "travel", type: "experience", low: 2000, high: 7000, notes: "Fuel + campgrounds + activities; amazing route" },
+  { id: 92, name: "East Coast Trip for Mom", cat: "travel", type: "experience", low: 1500, high: 5000, notes: "Flights + hotels + activities" },
+  { id: 93, name: "Annual Travel (Company $2k)", cat: "travel", type: "experience", low: 0, high: 2000, notes: "Reimbursed — use it! Plan in advance" },
+  { id: 94, name: "Sporting Events", cat: "travel", type: "experience", low: 200, high: 2000, notes: "Per event; NFL/MLB vary widely by team + seats" },
+  { id: 95, name: "Concerts", cat: "travel", type: "experience", low: 100, high: 500, notes: "Per show; presale access matters for popular artists" },
+
+  // TRAILER
+  { id: 96, name: "Trailer Awning", cat: "trailer", type: "upgrade", low: 300, high: 1200, notes: "Carefree or Lippert slide-out awning" },
+  { id: 97, name: "Trailer Generator (Onan)", cat: "trailer", type: "wishlist", low: 1000, high: 3500, notes: "Onan 2800i or 3600 LP; LP preferred if already on LP" },
+  { id: 98, name: "Trailer Tires", cat: "trailer", type: "maintenance", low: 400, high: 1200, notes: "Replace every 5-7 years regardless of tread; ST tires only" },
+  { id: 99, name: "Trailer Vacuum", cat: "trailer", type: "wishlist", low: 50, high: 200, notes: "Cordless handheld (Black+Decker) works great" },
+
+  // WYOMING RANCH
+  { id: 100, name: "Wyoming Ranch — Road Improvements", cat: "wyoming", type: "maintenance", low: 5000, high: 20000, notes: "Grading + gravel; length and grade affect cost" },
+  { id: 101, name: "Wyoming Ranch — Parking / Flat Pad + Drainage", cat: "wyoming", type: "wishlist", low: 5000, high: 15000, notes: "Gravel base + culverts for drainage" },
+  { id: 102, name: "Wyoming Ranch — Paved Pad", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "Asphalt vs concrete; concrete lasts longer in freeze-thaw" },
+  { id: 103, name: "Wyoming Ranch — Septic System", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "Conventional or mound system depending on soil perc test" },
+  { id: 104, name: "Wyoming Ranch — Well / Pump House / Storage", cat: "wyoming", type: "wishlist", low: 8000, high: 20000, notes: "Well depth is the big variable; pressure tank + house" },
+  { id: 105, name: "Wyoming Ranch — Workshop / Garage / Pole Barn", cat: "wyoming", type: "wishlist", low: 20000, high: 80000, notes: "Morton or Lester Buildings for quality; size drives cost" },
+
+  // HOBBIES
+  { id: 106, name: "Move Kiln / Upgrade Electric", cat: "hobbies", type: "wishlist", low: 500, high: 3000, notes: "240V circuit + outlet upgrade if needed; kiln relocation" },
+  { id: 107, name: "Move Pottery Stuff", cat: "hobbies", type: "wishlist", low: 200, high: 600, notes: "Depending on how involved the studio setup is" },
+  { id: 108, name: "22LR Rifle for Plinking", cat: "hobbies", type: "wishlist", low: 250, high: 700, notes: "Ruger 10/22 is the classic; Volquartsen for premium" },
+  { id: 109, name: "22LR Pistol for Plinking", cat: "hobbies", type: "wishlist", low: 200, high: 600, notes: "Ruger Mark IV or S&W Victory" },
+  { id: 110, name: "Ammunition", cat: "hobbies", type: "maintenance", low: 100, high: 400, notes: "Buy in bulk; CCI Mini-Mag is reliable 22LR" },
+  { id: 111, name: "Lego Harry Potter Set(s)", cat: "hobbies", type: "wishlist", low: 100, high: 600, notes: "Hogwarts Castle is the flagship set (~$470)" },
+  { id: 112, name: "Music Instruments", cat: "hobbies", type: "wishlist", low: 200, high: 3000, notes: "Depends on what's interesting — guitar, keys, etc." },
+  { id: 113, name: "Jewelry", cat: "hobbies", type: "wishlist", low: 200, high: 5000, notes: "Gifting or personal; varies by material" },
+  { id: 114, name: "Sunglasses", cat: "hobbies", type: "wishlist", low: 100, high: 500, notes: "Oakley or Costa for outdoor/ranch use; polarized lenses" },
+  { id: 115, name: "Glasses (Prescription)", cat: "hobbies", type: "maintenance", low: 150, high: 600, notes: "Zenni for budget; Warby Parker mid-range" },
+
+  // SAFETY
+  { id: 116, name: "Real Emergency Kit (Completed)", cat: "safety", type: "wishlist", low: 300, high: 1200, notes: "72-hr kit per person + 30-day food supply; customize for ranch" },
+  { id: 117, name: "Water Storage System (Emergency)", cat: "safety", type: "wishlist", low: 300, high: 1500, notes: "WaterBOB + 55gal barrels + Berkey filter" },
+
+  // PROPERTY
+  { id: 118, name: "Property at Bear Lake", cat: "property", type: "wishlist", low: 150000, high: 600000, notes: "Lot vs cabin; Utah side cheaper than Idaho side" },
+  { id: 119, name: "Tiny Homes (Calvin, Mom, Ranch, Hobbies)", cat: "property", type: "wishlist", low: 30000, high: 120000, notes: "Per unit; container home or prefab shell can cut costs" },
+];
+
+const SUGGESTED_ITEMS = [
+  { id: "s1", name: "Whole-Home Generator (Propane/Nat Gas Standby)", cat: "home_systems", type: "wishlist", low: 4000, high: 12000, notes: "Generac or Kohler; pairs well with your ranch/emergency prep theme" },
+  { id: "s2", name: "Gun Safe / Vault", cat: "safety", type: "wishlist", low: 500, high: 3000, notes: "Required once you have 22LR + future firearms; Liberty or Fort Knox" },
+  { id: "s3", name: "Pressure Washer (Gas)", cat: "garage", type: "wishlist", low: 300, high: 800, notes: "For truck, trailer, decks, driveways; Simpson or Dewalt" },
+  { id: "s4", name: "UTV / Trailer Cargo Box", cat: "vehicle", type: "wishlist", low: 200, high: 800, notes: "Pairs with side-by-side; waterproof tool/gear storage" },
+  { id: "s5", name: "First Aid / Trauma Kit", cat: "safety", type: "wishlist", low: 100, high: 400, notes: "IFAK for ranch/camping; stop-the-bleed training pairs well" },
+  { id: "s6", name: "NAS / Home Server (Homelab)", cat: "tech", type: "wishlist", low: 400, high: 1500, notes: "Synology or TrueNAS; local media, backups, Home Assistant" },
+  { id: "s7", name: "Wyoming Ranch Solar + Battery Off-Grid", cat: "wyoming", type: "wishlist", low: 8000, high: 25000, notes: "If no grid tie; pairs with well pump + cabin power needs" },
+  { id: "s8", name: "Fire Pit / Outdoor Fireplace", cat: "outdoor", type: "wishlist", low: 300, high: 4000, notes: "DIY block pit vs gas fire table vs built-in masonry" },
+  { id: "s9", name: "Outdoor Projector + Screen (Movie Nights)", cat: "outdoor", type: "wishlist", low: 400, high: 1200, notes: "Great for backyard gatherings; pairs with the grill setup" },
+  { id: "s10", name: "Annual Vehicle Registration / Insurance Review", cat: "vehicle", type: "maintenance", low: 0, high: 200, notes: "Recurring — shop insurance annually; bundle for savings" },
+  { id: "s11", name: "Welder (MIG or TIG)", cat: "garage", type: "wishlist", low: 400, high: 2000, notes: "Lincoln Electric or Miller; useful with ranch + tractor repairs" },
+  { id: "s12", name: "Roof Inspection / Replacement Fund", cat: "home_exterior", type: "maintenance", low: 500, high: 20000, notes: "Inspect every 5 yrs; budget separately for full replacement" },
+];
+
+export default function WishList() {
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeType, setActiveType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("category");
+  const [tab, setTab] = useState("list"); // list | suggested | summary
+  const [approvedSuggestions, setApprovedSuggestions] = useState([]);
+  const [rejectedSuggestions, setRejectedSuggestions] = useState([]);
+
+  const allItems = useMemo(() => {
+    const approved = SUGGESTED_ITEMS.filter(s => approvedSuggestions.includes(s.id));
+    return [...ALL_ITEMS, ...approved.map(s => ({ ...s, id: `approved_${s.id}` }))];
+  }, [approvedSuggestions]);
+
+  const filtered = useMemo(() => {
+    return allItems.filter(item => {
+      if (activeCategory !== "all" && item.cat !== activeCategory) return false;
+      if (activeType !== "all" && item.type !== activeType) return false;
+      if (search && !item.name.toLowerCase().includes(search.toLowerCase()) && !item.notes.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === "priceAsc") return a.low - b.low;
+      if (sortBy === "priceDesc") return b.high - a.high;
+      if (sortBy === "category") return a.cat.localeCompare(b.cat);
+      return a.name.localeCompare(b.name);
+    });
+  }, [allItems, activeCategory, activeType, search, sortBy]);
+
+  const totalLow = allItems.reduce((s, i) => s + i.low, 0);
+  const totalHigh = allItems.reduce((s, i) => s + i.high, 0);
+  const filteredLow = filtered.reduce((s, i) => s + i.low, 0);
+  const filteredHigh = filtered.reduce((s, i) => s + i.high, 0);
+
+  const fmt = (n) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
+  const fmtFull = (n) => `$${n.toLocaleString()}`;
+
+  const pendingSuggestions = SUGGESTED_ITEMS.filter(
+    s => !approvedSuggestions.includes(s.id) && !rejectedSuggestions.includes(s.id)
+  );
+
+  const catCounts = useMemo(() => {
+    const counts = {};
+    allItems.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
+    return counts;
+  }, [allItems]);
+
+  return (
+    <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", background: "#1a1710", minHeight: "100vh", color: "#e8e0cc" }}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, #2a2418 0%, #1a1710 100%)", borderBottom: "2px solid #5a4a2a", padding: "24px 32px" }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "#e8c87a", letterSpacing: 1, textTransform: "uppercase" }}>
+                📋 Master Wish List
+              </h1>
+              <p style={{ margin: "4px 0 0", color: "#a09070", fontSize: 13 }}>
+                {allItems.length} items · Est. {fmtFull(totalLow)} – {fmtFull(totalHigh)}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["list", "suggested", "summary"].map(t => (
+                <button key={t} onClick={() => setTab(t)} style={{
+                  padding: "8px 18px", borderRadius: 6, border: "1px solid",
+                  borderColor: tab === t ? "#e8c87a" : "#4a3a1a",
+                  background: tab === t ? "#e8c87a" : "transparent",
+                  color: tab === t ? "#1a1710" : "#a09070",
+                  fontFamily: "inherit", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                  textTransform: "capitalize"
+                }}>
+                  {t === "suggested" ? `Suggestions (${pendingSuggestions.length})` : t}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 32px" }}>
+
+        {tab === "list" && (
+          <>
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
+              <input
+                placeholder="🔍 Search items..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
+                  background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit",
+                  fontSize: 13, width: 220, outline: "none"
+                }}
+              />
+              <select value={activeType} onChange={e => setActiveType(e.target.value)} style={{
+                padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
+                background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit", fontSize: 13, cursor: "pointer"
+              }}>
+                <option value="all">All Types</option>
+                {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{
+                padding: "8px 14px", borderRadius: 6, border: "1px solid #4a3a1a",
+                background: "#2a2418", color: "#e8e0cc", fontFamily: "inherit", fontSize: 13, cursor: "pointer"
+              }}>
+                <option value="category">Sort by Category</option>
+                <option value="name">Sort by Name</option>
+                <option value="priceAsc">Sort by Price ↑</option>
+                <option value="priceDesc">Sort by Price ↓</option>
+              </select>
+              {(activeCategory !== "all" || activeType !== "all" || search) && (
+                <span style={{ color: "#a09070", fontSize: 12 }}>
+                  {filtered.length} items · {fmt(filteredLow)}–{fmt(filteredHigh)}
+                </span>
+              )}
+            </div>
+
+            {/* Category Pills */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
+              <button onClick={() => setActiveCategory("all")} style={{
+                padding: "5px 14px", borderRadius: 20, border: "1px solid",
+                borderColor: activeCategory === "all" ? "#e8c87a" : "#4a3a1a",
+                background: activeCategory === "all" ? "#e8c87a22" : "transparent",
+                color: activeCategory === "all" ? "#e8c87a" : "#706050",
+                fontSize: 12, cursor: "pointer", fontFamily: "inherit"
+              }}>All ({allItems.length})</button>
+              {Object.entries(CATEGORIES).map(([k, v]) => (
+                catCounts[k] ? (
+                  <button key={k} onClick={() => setActiveCategory(activeCategory === k ? "all" : k)} style={{
+                    padding: "5px 14px", borderRadius: 20, border: "1px solid",
+                    borderColor: activeCategory === k ? v.color : "#4a3a1a",
+                    background: activeCategory === k ? v.color + "22" : "transparent",
+                    color: activeCategory === k ? v.color : "#706050",
+                    fontSize: 12, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
+                  }}>
+                    {v.icon} {v.label} ({catCounts[k]})
+                  </button>
+                ) : null
+              ))}
+            </div>
+
+            {/* Items Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+              {filtered.map(item => {
+                const cat = CATEGORIES[item.cat];
+                const type = TYPES[item.type] || TYPES.wishlist;
+                return (
+                  <div key={item.id} style={{
+                    background: "#231f14", border: "1px solid #3a3020",
+                    borderRadius: 8, padding: "14px 16px",
+                    borderLeft: `3px solid ${cat?.color || "#666"}`
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#e8e0cc", lineHeight: 1.3 }}>{item.name}</div>
+                      <div style={{
+                        fontSize: 13, fontWeight: 700, color: "#e8c87a",
+                        whiteSpace: "nowrap", fontFamily: "'Courier New', monospace"
+                      }}>
+                        {fmt(item.low)}–{fmt(item.high)}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{
+                        fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                        background: (cat?.color || "#666") + "22", color: cat?.color || "#666",
+                        border: `1px solid ${(cat?.color || "#666")}44`
+                      }}>{cat?.icon} {cat?.label}</span>
+                      <span style={{
+                        fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                        background: type.color + "22", color: type.color,
+                        border: `1px solid ${type.color}44`
+                      }}>{type.label}</span>
+                    </div>
+                    {item.notes && (
+                      <div style={{ fontSize: 12, color: "#807060", lineHeight: 1.5 }}>{item.notes}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {tab === "suggested" && (
+          <div>
+            <div style={{ marginBottom: 20, padding: "14px 20px", background: "#2a2418", borderRadius: 8, border: "1px solid #4a3a1a" }}>
+              <p style={{ margin: 0, color: "#a09070", fontSize: 13 }}>
+                These items fit themes already in your list. Review each one — approve to add it to your master list, or reject to dismiss it.
+                {approvedSuggestions.length > 0 && ` · ✅ ${approvedSuggestions.length} approved`}
+                {rejectedSuggestions.length > 0 && ` · ❌ ${rejectedSuggestions.length} rejected`}
+              </p>
+            </div>
+            {pendingSuggestions.length === 0 && (
+              <div style={{ textAlign: "center", color: "#706050", padding: 60, fontSize: 15 }}>
+                All suggestions reviewed! ✓ Switch to the List tab to see approved items.
+              </div>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 14 }}>
+              {pendingSuggestions.map(item => {
+                const cat = CATEGORIES[item.cat];
+                const type = TYPES[item.type] || TYPES.wishlist;
+                return (
+                  <div key={item.id} style={{
+                    background: "#231f14", border: "1px solid #3a3020",
+                    borderRadius: 8, padding: "16px", borderLeft: `3px solid ${cat?.color || "#666"}`
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#e8e0cc" }}>{item.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e8c87a", whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                        {fmt(item.low)}–{fmt(item.high)}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: (cat?.color || "#666") + "22", color: cat?.color, border: `1px solid ${(cat?.color || "#666")}44` }}>{cat?.icon} {cat?.label}</span>
+                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: type.color + "22", color: type.color, border: `1px solid ${type.color}44` }}>{type.label}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#807060", marginBottom: 14 }}>{item.notes}</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => setApprovedSuggestions(p => [...p, item.id])} style={{
+                        flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #4a7a3a",
+                        background: "#1a3a1a", color: "#7ae87a", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: 700
+                      }}>✓ Add to List</button>
+                      <button onClick={() => setRejectedSuggestions(p => [...p, item.id])} style={{
+                        flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #5a2a2a",
+                        background: "#2a1a1a", color: "#e87a7a", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: 700
+                      }}>✕ Not Interested</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {tab === "summary" && (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
+              {Object.entries(CATEGORIES).map(([k, v]) => {
+                const items = allItems.filter(i => i.cat === k);
+                if (!items.length) return null;
+                const low = items.reduce((s, i) => s + i.low, 0);
+                const high = items.reduce((s, i) => s + i.high, 0);
+                return (
+                  <div key={k} style={{
+                    background: "#231f14", border: `1px solid ${v.color}33`,
+                    borderRadius: 8, padding: "16px", borderTop: `3px solid ${v.color}`
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <div style={{ color: v.color, fontWeight: 700, fontSize: 14 }}>{v.icon} {v.label}</div>
+                      <div style={{ color: "#706050", fontSize: 12 }}>{items.length} items</div>
+                    </div>
+                    <div style={{ color: "#e8c87a", fontSize: 18, fontWeight: 700, fontFamily: "monospace" }}>
+                      {fmtFull(low)} – {fmtFull(high)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: "#2a2418", borderRadius: 10, padding: "20px 24px", border: "2px solid #5a4a2a" }}>
+              <div style={{ fontSize: 13, color: "#a09070", marginBottom: 4 }}>Total Estimated Range</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "#e8c87a", fontFamily: "monospace" }}>
+                {fmtFull(totalLow)} – {fmtFull(totalHigh)}
+              </div>
+              <div style={{ fontSize: 12, color: "#706050", marginTop: 4 }}>
+                Across {allItems.length} items · Estimates are ranges; actual costs vary by vendor, region, and scope.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
