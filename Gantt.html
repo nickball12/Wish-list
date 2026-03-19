@@ -1,5 +1,22 @@
-import { useState, useMemo, useRef } from "react";
-import * as XLSX from "xlsx";
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wish List Planner — Gantt</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #1a1710; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useMemo, useRef } = React;
 
 const SY=2026,TM=240,ROW_H=22,CAT_H=28,AX_H=42,LW=228;
 const MNS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -672,7 +689,7 @@ function ItemList({items,onEdit,onNew}){
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-export default function App(){
+function App(){
   const[items,setItems]=useState(ITEMS_INIT);
   const[editItem,setEditItem]=useState(null);
   const[tab,setTab]=useState("gantt");
@@ -755,3 +772,8 @@ export default function App(){
     </div>
   );
 }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
