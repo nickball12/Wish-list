@@ -8,6 +8,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { background: #1a1710; }
@@ -16,7 +17,7 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useMemo, useRef } = React;
+      const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
 const SY=2026,TM=240,ROW_H=22,CAT_H=28,AX_H=42,LW=228;
 const MNS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -49,6 +50,18 @@ const RECUR_OPTS=[
   {v:12,l:"Annually"},{v:24,l:"Every 2yr"},{v:36,l:"Every 3yr"},{v:48,l:"Every 4yr"},
   {v:60,l:"Every 5yr"},{v:72,l:"Every 6yr"},{v:84,l:"Every 7yr"},{v:96,l:"Every 8yr"},
 ];
+
+const PRIORITY_TIERS={
+  "urgent":    {label:"Urgent",    color:"#DC2626"},
+  "this-year": {label:"This Year", color:"#D97706"},
+  "3-year":    {label:"3-Year",    color:"#4F46E5"},
+  "5-year":    {label:"5-Year",    color:"#059669"},
+  "someday":   {label:"Someday",   color:"#6B7280"},
+};
+
+const SUPABASE_URL="https://cohgljjigfgoxdbvhkan.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvaGdsamppZ2Znb3hkYnZoa2FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzAyOTAsImV4cCI6MjA5MDY0NjI5MH0.MBT88BUr9qfbUpY2l8dG-173lp_uROOuYoP7bSz5Xew";
+const sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 // [name, cat, type, low, high, startMonth, recur, dur, notes]
 const SEED=[
@@ -202,12 +215,12 @@ const SUGGESTIONS_SEED=[
 
 const ITEMS_INIT = SEED.map((r,i)=>({
   id:i+1, name:r[0], cat:r[1], type:r[2], low:r[3], high:r[4],
-  startMonth:r[5], recur:r[6], dur:r[7], notes:r[8]||""
+  startMonth:r[5], recur:r[6], dur:r[7], notes:r[8]||"", priority:"someday"
 }));
 
 const SUGG_INIT = SUGGESTIONS_SEED.map(r=>({
   id:r[0], name:r[1], cat:r[2], type:r[3], low:r[4], high:r[5],
-  startMonth:r[6], recur:r[7], dur:r[8], notes:r[9]||""
+  startMonth:r[6], recur:r[7], dur:r[8], notes:r[9]||"", priority:"someday"
 }));
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -221,13 +234,13 @@ const midOf=it=>Math.round((it.low+it.high)/2);
 // ── Excel I/O ────────────────────────────────────────────────────────────────
 function exportXLSX(items){
   const data=items.map(it=>({
-    ID:it.id, Name:it.name, Category:it.cat, Type:it.type,
+    ID:it.id, Name:it.name, Category:it.cat, Type:it.type, Priority:it.priority||"someday",
     "Cost Low":it.low, "Cost High":it.high,
     "Start Month":it.startMonth, "Recur Months":it.recur,
     "Duration Months":it.dur, Notes:it.notes
   }));
   const ws=XLSX.utils.json_to_sheet(data);
-  ws["!cols"]=[5,36,18,14,10,10,13,13,15,50].map(w=>({wch:w}));
+  ws["!cols"]=[5,36,18,14,12,10,10,13,13,15,50].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"Wish List");
   XLSX.writeFile(wb,"WishList.xlsx");
@@ -245,11 +258,13 @@ function parseXLSX(file,onLoad){
         const high=+(r["Cost High"]||r["Est. High"]||r["high"]||0);
         const cat=r.Category||r.cat||"vehicle";
         const type=r.Type||r.type||"wishlist";
+        const priority=r.Priority||r.priority||"someday";
         return{
           id:r.ID||(crypto.randomUUID?(crypto.randomUUID()):(Date.now()*1e9+Math.floor(Math.random()*1e9)+i)),
           name:String(r.Name||r["Item Name"]||r.name||"Unnamed"),
           cat:CATS[cat]?cat:"vehicle",
           type:TYPES[type]?type:"wishlist",
+          priority:PRIORITY_TIERS[priority]?priority:"someday",
           low,high,
           startMonth:Math.max(1,Math.min(TM,+(r["Start Month"]||r.startMonth||1))),
           recur:+(r["Recur Months"]||r.recur||0),
@@ -317,6 +332,15 @@ function EditModal({item,onSave,onDelete,onClose}){
               </optgroup>
             </select>
           </div>
+        </div>
+
+        <div style={{marginBottom:11}}>
+          <label style={lS}>Priority Tier</label>
+          <select style={iS} value={f.priority||"someday"} onChange={e=>set("priority",e.target.value)}>
+            {Object.entries(PRIORITY_TIERS).map(([k,v])=>(
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:11}}>
@@ -632,13 +656,15 @@ function ListTab({items,onEdit,onNew}){
   const[q,setQ]=useState("");
   const[ft,setFt]=useState("all");
   const[fc,setFc]=useState("all");
+  const[fp,setFp]=useState("all");
   const[sort,setSort]=useState("start");
 
   const shown=useMemo(()=>items
     .filter(i=>(ft==="all"||i.type===ft)&&(fc==="all"||i.cat===fc)&&
+      (fp==="all"||(i.priority||"someday")===fp)&&
       (!q||i.name.toLowerCase().includes(q.toLowerCase())||i.notes.toLowerCase().includes(q.toLowerCase())))
     .sort((a,b)=>sort==="start"?a.startMonth-b.startMonth:sort==="costH"?b.high-a.high:sort==="costL"?a.low-b.low:a.name.localeCompare(b.name))
-  ,[items,q,ft,fc,sort]);
+  ,[items,q,ft,fc,fp,sort]);
 
   const selS={padding:"5px 9px",background:"#2a2418",border:"1px solid #4a3a1a",borderRadius:5,
     color:"#e8e0cc",fontFamily:"Georgia,serif",fontSize:11,cursor:"pointer",outline:"none"};
@@ -646,6 +672,12 @@ function ListTab({items,onEdit,onNew}){
   const catCounts=useMemo(()=>{
     const c={};
     items.forEach(i=>{c[i.cat]=(c[i.cat]||0)+1;});
+    return c;
+  },[items]);
+
+  const priorCounts=useMemo(()=>{
+    const c={};
+    items.forEach(i=>{const p=i.priority||"someday";c[p]=(c[p]||0)+1;});
     return c;
   },[items]);
 
@@ -674,6 +706,23 @@ function ListTab({items,onEdit,onNew}){
           cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}}>+ Add Item</button>
       </div>
 
+      {/* Priority filter */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+        <button onClick={()=>setFp("all")} style={{padding:"3px 10px",borderRadius:20,border:"1px solid",
+          borderColor:fp==="all"?"#e8c87a":"#4a3a1a",background:fp==="all"?"#e8c87a22":"transparent",
+          color:fp==="all"?"#e8c87a":"#706050",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
+          All</button>
+        {Object.entries(PRIORITY_TIERS).map(([k,v])=>(
+          <button key={k} onClick={()=>setFp(fp===k?"all":k)} style={{
+            padding:"3px 10px",borderRadius:20,border:"1px solid",display:"inline-flex",alignItems:"center",gap:5,
+            borderColor:fp===k?v.color:"#4a3a1a",background:fp===k?v.color+"22":"transparent",
+            color:fp===k?v.color:"#706050",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:v.color,display:"inline-block",flexShrink:0}}/>
+            {v.label}{priorCounts[k]?` (${priorCounts[k]})`:""}
+          </button>
+        ))}
+      </div>
+
       {/* Category pills */}
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <button onClick={()=>setFc("all")} style={{padding:"3px 12px",borderRadius:20,border:"1px solid",
@@ -692,6 +741,7 @@ function ListTab({items,onEdit,onNew}){
         {shown.map(item=>{
           const tv=TYPES[item.type]||TYPES.wishlist;
           const cv=CATS[item.cat]||CATS.vehicle;
+          const pv=PRIORITY_TIERS[item.priority||"someday"];
           return(
             <div key={item.id}
               style={{background:"#231f14",border:"1px solid #3a3020",borderRadius:6,
@@ -700,7 +750,10 @@ function ListTab({items,onEdit,onNew}){
               onMouseEnter={e=>e.currentTarget.style.borderColor="#5a4a2a"}
               onMouseLeave={e=>e.currentTarget.style.borderColor="#3a3020"}>
               <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:5}}>
-                <div style={{fontWeight:700,fontSize:12,color:"#e8e0cc",lineHeight:1.3}}>{item.name}</div>
+                <div style={{display:"flex",alignItems:"center",gap:5,fontWeight:700,fontSize:12,color:"#e8e0cc",lineHeight:1.3}}>
+                  <span title={pv.label+" priority"} style={{width:8,height:8,borderRadius:"50%",background:pv.color,flexShrink:0,display:"inline-block"}}/>
+                  {item.name}
+                </div>
                 <div style={{fontSize:11,color:"#e8c87a",fontFamily:"monospace",whiteSpace:"nowrap"}}>{fmt(item.low)}–{fmt(item.high)}</div>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:item.notes?4:0}}>
@@ -761,6 +814,28 @@ function SummaryTab({items}){
             return(
               <div key={k} style={{borderLeft:`3px solid ${v.color}`,paddingLeft:8}}>
                 <div style={{color:v.color,fontSize:12,fontWeight:700}}>{v.label}</div>
+                <div style={{color:"#605040",fontSize:10}}>{its.length} items</div>
+                <div style={{color:"#e8c87a",fontSize:13,fontFamily:"monospace"}}>${t20.toLocaleString()}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Priority tier breakdown */}
+      <div style={{background:"#231f14",border:"1px solid #5a4a2a",borderRadius:8,padding:"14px 16px",marginBottom:20}}>
+        <div style={{fontSize:12,color:"#a09070",fontWeight:700,marginBottom:12}}>By Priority Tier</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+          {Object.entries(PRIORITY_TIERS).map(([k,v])=>{
+            const its=items.filter(i=>(i.priority||"someday")===k);
+            if(!its.length)return null;
+            const t20=its.reduce((a,i)=>a+cost20(i),0);
+            return(
+              <div key={k} style={{borderLeft:`3px solid ${v.color}`,paddingLeft:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:v.color,flexShrink:0,display:"inline-block"}}/>
+                  <span style={{color:v.color,fontSize:12,fontWeight:700}}>{v.label}</span>
+                </div>
                 <div style={{color:"#605040",fontSize:10}}>{its.length} items</div>
                 <div style={{color:"#e8c87a",fontSize:13,fontFamily:"monospace"}}>${t20.toLocaleString()}</div>
               </div>
@@ -858,7 +933,9 @@ function SuggestionsTab({suggestions,approvedIds,rejectedIds,onApprove,onReject}
 
 // ── App ───────────────────────────────────────────────────────────────────────
 function App(){
-  const[items,setItems]=useState(ITEMS_INIT);
+  const[items,setItems]=useState([]);
+  const[loaded,setLoaded]=useState(false);
+  const[syncStatus,setSyncStatus]=useState("loading");
   const[suggestions]=useState(SUGG_INIT);
   const[approvedIds,setApprovedIds]=useState([]);
   const[rejectedIds,setRejectedIds]=useState([]);
@@ -866,6 +943,63 @@ function App(){
   const[tab,setTab]=useState("list");
   const[msg,setMsg]=useState("");
   const fileRef=useRef();
+  const saveTimerRef=useRef(null);
+
+  // ── Supabase load on mount ──
+  useEffect(()=>{
+    async function load(){
+      try{
+        const{data,error}=await sbClient.from("wishlist_items").select("data").eq("id","all").single();
+        if(error){
+          if(error.code==="PGRST116"){
+            // No row yet — seed Supabase with initial data
+            const seed=ITEMS_INIT;
+            setItems(seed);
+            await sbClient.from("wishlist_items").upsert({id:"all",data:seed});
+          } else {
+            throw error;
+          }
+        } else {
+          setItems(data?.data||[]);
+        }
+        setSyncStatus("synced");
+      }catch(e){
+        console.error("Supabase load error:",e);
+        setItems(ITEMS_INIT);
+        setSyncStatus("error");
+      }
+      setLoaded(true);
+    }
+    load();
+  },[]);
+
+  // ── Debounced save ──
+  const debouncedSave=useCallback((updatedItems)=>{
+    if(saveTimerRef.current)clearTimeout(saveTimerRef.current);
+    setSyncStatus("saving");
+    saveTimerRef.current=setTimeout(async()=>{
+      try{
+        const{error}=await sbClient.from("wishlist_items").upsert({id:"all",data:updatedItems});
+        if(error)throw error;
+        setSyncStatus("synced");
+      }catch(e){
+        console.error("Supabase save error:",e);
+        setSyncStatus("error");
+      }
+    },800);
+  },[]);
+
+  // Warn on unload if a save is pending
+  useEffect(()=>{
+    const handler=e=>{
+      if(syncStatus==="saving"){
+        e.preventDefault();
+        e.returnValue="Changes are still being saved. Are you sure you want to leave?";
+      }
+    };
+    window.addEventListener("beforeunload",handler);
+    return()=>window.removeEventListener("beforeunload",handler);
+  },[syncStatus]);
 
   const pendingCount=suggestions.filter(s=>!approvedIds.includes(s.id)&&!rejectedIds.includes(s.id)).length;
 
@@ -878,24 +1012,35 @@ function App(){
 
   function openEdit(item){setEditItem({...item});}
   const uid=()=>crypto.randomUUID?crypto.randomUUID():(Date.now()*1000+Math.floor(Math.random()*1e9));
-  function openNew(){setEditItem({_new:true,id:uid(),name:"",cat:"vehicle",type:"wishlist",low:0,high:0,startMonth:1,recur:0,dur:1,notes:""});}
+  function openNew(){setEditItem({_new:true,id:uid(),name:"",cat:"vehicle",type:"wishlist",priority:"someday",low:0,high:0,startMonth:1,recur:0,dur:1,notes:""});}
 
   function saveEdit(updated){
+    let newItems;
     if(updated._new!==undefined){
       const{_new,...item}=updated;
-      setItems(p=>[...p,{...item,id:uid()}]);
+      newItems=[...items,{...item,id:uid()}];
       showMsg("✓ Item added");
     } else {
-      setItems(p=>p.map(i=>i.id===updated.id?updated:i));
+      newItems=items.map(i=>i.id===updated.id?updated:i);
       showMsg("✓ Changes saved");
     }
+    setItems(newItems);
+    debouncedSave(newItems);
     setEditItem(null);
   }
-  function deleteItem(id){setItems(p=>p.filter(i=>i.id!==id));setEditItem(null);showMsg("Item deleted","#FC8181");}
+  function deleteItem(id){
+    const newItems=items.filter(i=>i.id!==id);
+    setItems(newItems);
+    debouncedSave(newItems);
+    setEditItem(null);
+    showMsg("Item deleted","#FC8181");
+  }
 
   function handleApprove(suggItem){
     const newItem={...suggItem,id:uid()};
-    setItems(p=>[...p,newItem]);
+    const newItems=[...items,newItem];
+    setItems(newItems);
+    debouncedSave(newItems);
     setApprovedIds(p=>[...p,suggItem.id]);
     showMsg(`✓ "${suggItem.name}" added to list`);
   }
@@ -905,7 +1050,11 @@ function App(){
 
   function handleFile(e){
     const file=e.target.files[0];if(!file)return;
-    parseXLSX(file,imported=>{setItems(imported);showMsg(`✓ Loaded ${imported.length} items from "${file.name}"`);});
+    parseXLSX(file,imported=>{
+      setItems(imported);
+      debouncedSave(imported);
+      showMsg(`✓ Loaded ${imported.length} items from "${file.name}"`);
+    });
     e.target.value="";
   }
 
@@ -920,6 +1069,14 @@ function App(){
     ["funding","💰 Funding"],
   ];
 
+  const syncEl=syncStatus==="saving"
+    ?<span style={{fontSize:11,color:"#D97706",fontStyle:"italic"}}>↑ Saving…</span>
+    :syncStatus==="error"
+    ?<span style={{fontSize:11,color:"#FC8181",fontStyle:"italic"}}>✕ Error</span>
+    :syncStatus==="loading"
+    ?<span style={{fontSize:11,color:"#a09070",fontStyle:"italic"}}>↻ Loading…</span>
+    :<span style={{fontSize:11,color:"#68D391",fontStyle:"italic"}}>✓ Synced</span>;
+
   return(
     <div style={{background:"#1a1710",minHeight:"100vh",color:"#e8e0cc",fontFamily:"Georgia,serif",padding:"16px 20px",boxSizing:"border-box"}}>
       {editItem&&<EditModal item={editItem} onSave={saveEdit} onDelete={deleteItem} onClose={()=>setEditItem(null)}/>}
@@ -931,6 +1088,7 @@ function App(){
           <p style={{margin:"2px 0 0",color:"#605040",fontSize:11}}>{items.length} items · Jan {SY}–Dec {SY+19}</p>
         </div>
         <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
+          {syncEl}
           {msg&&<span style={{fontSize:11,color:msg.c,fontStyle:"italic"}}>{msg.t}</span>}
           <button onClick={()=>fileRef.current.click()} style={btnS("#68D391","#1a3018","#3a6030")}>↑ Import Excel</button>
           <button onClick={()=>{exportXLSX(items);showMsg(`↓ Exported ${items.length} items`,"#63B3ED");}} style={btnS("#63B3ED","#101828","#203860")}>↓ Export Excel</button>
